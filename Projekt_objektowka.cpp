@@ -27,6 +27,54 @@
 ********************************************************************************************/
 
 #include "raylib.h"
+#include "raymath.h" // Required for: Vector3, Vector3Add(), Vector3Scale(), GetRayCollisionBox()
+
+class table {
+public:
+    Model model1;
+	Vector3 position;
+   // BoundingBox bounds;
+    table(const char* modelPath, Vector3 pos = { 0.0f, 0.0f, 0.0f })
+        : position(pos)
+    {
+        model1 = LoadModel(modelPath);
+        //bounds = GetMeshBoundingBox(model1.meshes[0]);
+    }
+
+    ~table() {
+        UnloadModel(model1);
+    }
+
+    void Draw() const {
+        DrawModel(model1, position, 0.1f, RED);
+       // DrawBoundingBox(GetTransformedBoundingBox(), GREEN);
+    }
+    /*void Update() {
+        position.z += moveDirection * stepSize;
+        moveSteps++;
+
+        if (moveSteps >= maxSteps) {
+            moveDirection *= -1;
+            moveSteps = 0;
+        }
+        
+    }*/
+private:
+    /*BoundingBox GetTransformedBoundingBox() const {
+        // Skalujemy i przesuwamy box zgodnie z modelem
+        BoundingBox transformed = bounds;
+        float scale = 0.1f;
+        transformed.min = Vector3Add(Vector3Scale(transformed.min, scale), position);
+        transformed.max = Vector3Add(Vector3Scale(transformed.max, scale), position);
+        return transformed;
+    }
+
+    int moveDirection = 1;
+    int moveSteps = 0;
+    const int maxSteps = 20;
+    float stepSize = 0.5f;
+    */
+};
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -37,7 +85,6 @@ int main(void)
     //--------------------------------------------------------------------------------------
     const int screenWidth = 800;
     const int screenHeight = 450;
-
     InitWindow(screenWidth, screenHeight, "raylib [models] example - models loading");
 
     // Define the camera to look into our 3d world
@@ -49,7 +96,10 @@ int main(void)
        camera.projection = CAMERA_PERSPECTIVE;    // Camera mode type
 
     Model model = LoadModel("main.obj");                 // Load model
-    //Texture2D texture = LoadTexture("resources/models/obj/castle_diffuse.png"); // Load model texture
+
+    table myTable("Y.obj", { 0.0f, 5.0f, 0.0f });
+	table myTable2("X.obj", { 0.0f, 51.0f, 0.0f });
+    //Texture2D texture = LoadTexture("resources/models/obj/castle_diffuse.png"); // Load model texture 
     //model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture;            // Set map diffuse texture
 
     Vector3 position = { 0.0f, 0.0f, 0.0f };                    // Set model position
@@ -71,7 +121,7 @@ int main(void)
     {
         // Update
         //----------------------------------------------------------------------------------
-        UpdateCamera(&camera, CAMERA_FIRST_PERSON);
+        UpdateCamera(&camera, CAMERA_FREE);
 
         // Load new models/textures on drag&drop
         if (IsFileDropped())
@@ -125,7 +175,9 @@ int main(void)
         BeginMode3D(camera);
 
         DrawModel(model, position, 0.1f, WHITE);        // Draw 3d model with texture
-
+        myTable.Draw();
+		myTable2.Draw();
+        //myTable.Update();
         DrawGrid(20, 10.0f);         // Draw a grid
 
         if (selected) DrawBoundingBox(bounds, GREEN);   // Draw selection box
