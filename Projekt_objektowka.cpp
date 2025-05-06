@@ -18,9 +18,7 @@ public:
     Model model1;
     Vector3 position;
 
-    main_model(const char* modelPath, Vector3 pos = { 0.0f, 0.0f, 0.0f })
-        : position(pos)
-    {
+    main_model(const char* modelPath, Vector3 pos = { 0.0f, 0.0f, 0.0f }) : position(pos) {
         model1 = LoadModel(modelPath);
     }
 
@@ -31,20 +29,16 @@ public:
     virtual void Draw() {
         DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, DARKBLUE);
     }
-
 };
 
 class modele : public main_model { //polimorfizm
-
 public:
-    modele(const char* modelPath, Vector3 pos = { 0.0f, 0.0f, 0.0f })
-        : main_model(modelPath, pos)
-    {
-        //
+    modele(const char* modelPath, Vector3 pos = { 0.0f, 0.0f, 0.0f }) : main_model(modelPath, pos) {
+		//Nic nie potrzebne, bo używamy z klasy bazowej
     }
 
     ~modele() {
-        // Nie trzeba zwalniać model1, bo robi to destruktor klasy bazowej
+        //Nic nie potrzebne, bo używamy z klasy bazowej
     }
 
     void Draw() override {
@@ -64,21 +58,17 @@ public:
         if (IsKeyDown(KEY_F)) {
             position.y -= stepSize;
         }
-
     }
 private:
     int moveDirection = 1;
     int moveSteps = 0;
     const int maxSteps = 20;
     float stepSize = 0.5f;
-
 };
 
-int main(void)
-{
-    const int screenWidth = 800;
-    const int screenHeight = 450;
-
+int main(void) {
+    const int screenWidth = 1600;
+    const int screenHeight = 900;
     SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(screenWidth, screenHeight, "Projekt obiektowka");
 
@@ -89,8 +79,7 @@ int main(void)
     cam.up = { 0.0f, 1.0f, 0.0f };
     cam.fovy = 45.0f;
 
-    Shader shadowShader = LoadShader(TextFormat("shadery/shader%i.vs", GLSL_VERSION),
-        TextFormat("shadery/shader%i.fs", GLSL_VERSION));
+    Shader shadowShader = LoadShader(TextFormat("shadery/shader%i.vs", GLSL_VERSION), TextFormat("shadery/shader%i.fs", GLSL_VERSION));
     shadowShader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(shadowShader, "viewPos");
     Vector3 lightDir = Vector3Normalize({ 0.35f, -1.0f, -0.35f });
     Color lightColor = WHITE;
@@ -131,8 +120,7 @@ int main(void)
     SetTargetFPS(60);
 
     // Main game loop
-    while (!WindowShouldClose())    // Detect window close button or ESC key
-    {
+    while (!WindowShouldClose()) {
         float dt = GetFrameTime();
 
         Vector3 cameraPos = cam.position;
@@ -140,23 +128,19 @@ int main(void)
         UpdateCamera(&cam, CAMERA_FREE);
 
         const float cameraSpeed = 0.05f;
-        if (IsKeyDown(KEY_LEFT))
-        {
+        if (IsKeyDown(KEY_LEFT)) {
             if (lightDir.x < 0.6f)
                 lightDir.x += cameraSpeed * 60.0f * dt;
         }
-        if (IsKeyDown(KEY_RIGHT))
-        {
+        if (IsKeyDown(KEY_RIGHT)) {
             if (lightDir.x > -0.6f)
                 lightDir.x -= cameraSpeed * 60.0f * dt;
         }
-        if (IsKeyDown(KEY_UP))
-        {
+        if (IsKeyDown(KEY_UP)) {
             if (lightDir.z < 0.6f)
                 lightDir.z += cameraSpeed * 60.0f * dt;
         }
-        if (IsKeyDown(KEY_DOWN))
-        {
+        if (IsKeyDown(KEY_DOWN)) {
             if (lightDir.z > -0.6f)
                 lightDir.z -= cameraSpeed * 60.0f * dt;
         }
@@ -165,7 +149,6 @@ int main(void)
         SetShaderValue(shadowShader, lightDirLoc, &lightDir, SHADER_UNIFORM_VEC3);
 
         // Draw
-        //----------------------------------------------------------------------------------
         BeginDrawing();
 
         Matrix lightView;
@@ -175,11 +158,12 @@ int main(void)
         BeginMode3D(lightCam);
         lightView = rlGetMatrixModelview();
         lightProj = rlGetMatrixProjection();
-        DrawGrid(20, 10.0f);
-        drukarka.Draw();
-        table.Draw();
-        nozzle.Draw();
-        rail.Draw();
+        // RYSOWANIE
+        DrawGrid(20, 10.0f); //
+        drukarka.Draw(); //
+        table.Draw(); //
+        nozzle.Draw(); //
+        rail.Draw(); //
         EndMode3D();
         EndTextureMode();
         Matrix lightViewProj = MatrixMultiply(lightView, lightProj);
@@ -197,11 +181,12 @@ int main(void)
         BeginMode3D(cam);
 
         // Draw the same exact things as we drew in the shadowmap!
-        DrawGrid(20, 10.0f);
-        drukarka.Draw();
-        table.Draw();
-        nozzle.Draw();
-        rail.Draw();
+        // RYSOWANIE
+        DrawGrid(20, 10.0f); //
+        drukarka.Draw(); //
+        table.Draw(); //
+        nozzle.Draw(); //
+        rail.Draw(); //
 
         EndMode3D();
         if (selected) DrawText("MODEL SELECTED", GetScreenWidth() - 110, 10, 10, GREEN);
@@ -209,8 +194,7 @@ int main(void)
         DrawFPS(10, 10);
         EndDrawing();
 
-        if (IsKeyPressed(KEY_T))
-        {
+        if (IsKeyPressed(KEY_T)) {
             TakeScreenshot("shaders_shadowmap.png");
         }
     }
@@ -225,16 +209,14 @@ int main(void)
     return 0;
 }
 
-RenderTexture2D LoadShadowmapRenderTexture(int width, int height)
-{
+RenderTexture2D LoadShadowmapRenderTexture(int width, int height) {
     RenderTexture2D target = { 0 };
 
     target.id = rlLoadFramebuffer(); // Load an empty framebuffer
     target.texture.width = width;
     target.texture.height = height;
 
-    if (target.id > 0)
-    {
+    if (target.id > 0) {
         rlEnableFramebuffer(target.id);
 
         // Create depth texture
@@ -259,10 +241,8 @@ RenderTexture2D LoadShadowmapRenderTexture(int width, int height)
 }
 
 // Unload shadowmap render texture from GPU memory (VRAM)
-void UnloadShadowmapRenderTexture(RenderTexture2D target)
-{
-    if (target.id > 0)
-    {
+void UnloadShadowmapRenderTexture(RenderTexture2D target) {
+    if (target.id > 0) {
         rlUnloadFramebuffer(target.id);
     }
 }
