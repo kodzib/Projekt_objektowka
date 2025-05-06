@@ -8,7 +8,7 @@
 #define GLSL_VERSION            120
 #endif
 
-#define SHADOWMAP_RESOLUTION 1024
+#define SHADOWMAP_RESOLUTION 2048
 
 RenderTexture2D LoadShadowmapRenderTexture(int width, int height);
 void UnloadShadowmapRenderTexture(RenderTexture2D target);
@@ -73,15 +73,15 @@ int main(void) {
     InitWindow(screenWidth, screenHeight, "Projekt obiektowka");
 
     Camera3D cam = { 0 };
-    cam.position = { 100.0f, 100.0f, 100.0f };
-    cam.target = { 0.0f, 10.0f, 0.0f };
+    cam.position = { 0.0f, 60.0f, 100.0f };
+    cam.target = { 0.0f, 25.0f, 0.0f };
     cam.projection = CAMERA_PERSPECTIVE;
     cam.up = { 0.0f, 1.0f, 0.0f };
     cam.fovy = 45.0f;
 
     Shader shadowShader = LoadShader(TextFormat("shadery/shader%i.vs", GLSL_VERSION), TextFormat("shadery/shader%i.fs", GLSL_VERSION));
     shadowShader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(shadowShader, "viewPos");
-    Vector3 lightDir = Vector3Normalize({ 0.35f, -1.0f, -0.35f });
+    Vector3 lightDir = Vector3Normalize({ 0.1f, -1.0f, -0.35f });
     Color lightColor = WHITE;
     Vector4 lightColorNormalized = ColorNormalize(lightColor);
     int lightDirLoc = GetShaderLocation(shadowShader, "lightDir");
@@ -89,7 +89,7 @@ int main(void) {
     SetShaderValue(shadowShader, lightDirLoc, &lightDir, SHADER_UNIFORM_VEC3);
     SetShaderValue(shadowShader, lightColLoc, &lightColorNormalized, SHADER_UNIFORM_VEC4);
     int ambientLoc = GetShaderLocation(shadowShader, "ambient");
-    float ambient[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
+    float ambient[4] = { 0.3f, 0.3f, 0.3f, 0.7f };
     SetShaderValue(shadowShader, ambientLoc, ambient, SHADER_UNIFORM_VEC4);
     int lightVPLoc = GetShaderLocation(shadowShader, "lightVP");
     int shadowMapLoc = GetShaderLocation(shadowShader, "shadowMap");
@@ -101,10 +101,19 @@ int main(void) {
     modele nozzle("modele/X.obj", { 0.0f, 31.5f, 0.0f });
     modele rail("modele/Z.obj", { 0.0f, 30.0f, 0.0f });
 
-    for (int i = 0; i < drukarka.model1.materialCount; i++) //low key trzeba ogarnąć o co z tych chodzi
-    {
+    for (int i = 0; i < drukarka.model1.materialCount; i++) {
         drukarka.model1.materials[i].shader = shadowShader;
     }
+	for (int i = 0; i < table.model1.materialCount; i++) {
+		table.model1.materials[i].shader = shadowShader;
+	}
+    for (int i = 0; i < nozzle.model1.materialCount; i++) {
+        nozzle.model1.materials[i].shader = shadowShader;
+    }
+    for (int i = 0; i < rail.model1.materialCount; i++) {
+        rail.model1.materials[i].shader = shadowShader;
+    }
+
     
     bool selected = false;
 

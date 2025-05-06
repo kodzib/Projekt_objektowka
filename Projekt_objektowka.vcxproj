@@ -132,6 +132,12 @@
   <ItemGroup>
     <ClInclude Include="rlights.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="shadery\shader120.fs" />
+    <None Include="shadery\shader120.vs" />
+    <None Include="shadery\shader330.fs" />
+    <None Include="shadery\shader330.vs" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
