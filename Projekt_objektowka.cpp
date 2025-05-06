@@ -26,6 +26,12 @@ public:
         UnloadModel(model1);
     }
 
+    void SetShader(Shader shader) {
+        for (int i = 0; i < model1.materialCount; i++) { //low key trzeba ogarnąć o co z tych chodzi, 
+            model1.materials[i].shader = shader;
+        }
+    }
+
     virtual void Draw() {
         DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, DARKBLUE);
     }
@@ -90,11 +96,6 @@ int main(void) {
     modele table("modele/Y.obj", { 0.0f, 5.0f, 0.0f });
     modele nozzle("modele/X.obj", { 0.0f, 31.5f, 0.0f });
     modele rail("modele/Z.obj", { 0.0f, 30.0f, 0.0f });
-
-    for (int i = 0; i < drukarka.model1.materialCount; i++) //low key trzeba ogarnąć o co z tych chodzi
-    {
-        drukarka.model1.materials[i].shader = shadowShader;
-    }
     
     bool selected = false;
 
@@ -177,6 +178,11 @@ int main(void) {
         table.Draw(); //
         nozzle.Draw(); //
         rail.Draw(); //
+
+        drukarka.SetShader(shadowShader);
+        table.SetShader(shadowShader);
+        nozzle.SetShader(shadowShader);
+        rail.SetShader(shadowShader);
 
         EndMode3D();
         if (selected) DrawText("MODEL SELECTED", GetScreenWidth() - 110, 10, 10, GREEN);
