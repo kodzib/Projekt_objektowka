@@ -51,18 +51,8 @@ public:
         }
         DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, RED);
     }
-    void Update() {
-        if (IsKeyDown(KEY_R)) {
-            position.y += stepSize;
-        }
-        if (IsKeyDown(KEY_F)) {
-            position.y -= stepSize;
-        }
-    }
 private:
-    int moveDirection = 1;
-    int moveSteps = 0;
-    const int maxSteps = 20;
+
     float stepSize = 0.5f;
 };
 
