@@ -45,18 +45,51 @@ public:
     }
 
     void Draw() override {
-
-        if (IsKeyDown(KEY_R)) {
-            position.y += stepSize;
-        }
-        if (IsKeyDown(KEY_F)) {
-            position.y -= stepSize;
-        }
         DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, RED);
     }
 private:
 
     float stepSize = 0.5f;
+};
+
+class TargetPoint {
+public:
+    Vector3 Target_position;
+    float speed;
+    TargetPoint(Vector3 pos, float s) : Target_position(pos), speed(s) {}
+
+    ~TargetPoint() {}
+
+    void MoveToPoint(modele* x, modele* y, modele* z) {
+        int direction;
+
+        // Ruch w osi 
+
+        if (x->position.x <Target_position.x) {
+            direction = 1;
+        }
+        else {
+            direction = -1;
+        }
+        x->position.x += speed * direction;
+
+        if (y->position.y < Target_position.y) {
+            direction = 1;
+        }
+        else {
+            direction = -1;
+        }
+        y->position.y += speed * direction;
+        x->position.y += speed * direction;
+
+        if (z->position.z < Target_position.z) {
+            direction = 1;
+        }
+        else {
+            direction = -1;
+        }
+        z->position.z += speed * direction;
+    }
 };
 
 int main(void) {
@@ -90,8 +123,8 @@ int main(void) {
     SetShaderValue(shadowShader, GetShaderLocation(shadowShader, "shadowMapResolution"), &shadowMapResolution, SHADER_UNIFORM_INT);
 
     main_model drukarka("modele/main.obj", shadowShader ,{ 0.0f, 0.0f, 0.0f });
-    modele table("modele/Y.obj", shadowShader, { 0.0f, 5.0f, 0.0f });
-    modele nozzle("modele/X.obj", shadowShader, { 0.0f, 31.5f, 0.0f });
+    modele table("modele/Y.obj", shadowShader, { 0.0f, 5.4f, 0.0f });
+    modele nozzle("modele/X.obj", shadowShader, { 0.0f, 31.4f, 0.0f });
     modele rail("modele/Z.obj", shadowShader, { 0.0f, 30.0f, 0.0f });
     
     bool selected = false;
@@ -173,6 +206,9 @@ int main(void) {
         table.Draw(); //
         nozzle.Draw(); //
         rail.Draw(); //
+
+        TargetPoint cel( {5.0f, 5.0f, 5.0f }, 0.01f);
+        cel.MoveToPoint(&nozzle, &rail, &table);
 
         EndMode3D();
         if (selected) DrawText("MODEL SELECTED", GetScreenWidth() - 110, 10, 10, GREEN);
