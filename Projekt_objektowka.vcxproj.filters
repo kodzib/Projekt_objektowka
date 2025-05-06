@@ -24,4 +24,10 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="shadery\shader120.fs" />
+    <None Include="shadery\shader120.vs" />
+    <None Include="shadery\shader330.fs" />
+    <None Include="shadery\shader330.vs" />
+  </ItemGroup>
 </Project>
