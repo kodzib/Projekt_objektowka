@@ -18,18 +18,15 @@ public:
     Model model1;
     Vector3 position;
 
-    main_model(const char* modelPath, Vector3 pos = { 0.0f, 0.0f, 0.0f }) : position(pos) {
+    main_model(const char* modelPath,Shader shader, Vector3 pos = { 0.0f, 0.0f, 0.0f }) : position(pos) {
         model1 = LoadModel(modelPath);
+        for (int i = 0; i < model1.materialCount; i++) { //low key trzeba ogarnąć o co z tych chodzi, 
+            model1.materials[i].shader = shader;
+        }
     }
 
     ~main_model() {
         UnloadModel(model1);
-    }
-
-    void SetShader(Shader shader) {
-        for (int i = 0; i < model1.materialCount; i++) { //low key trzeba ogarnąć o co z tych chodzi, 
-            model1.materials[i].shader = shader;
-        }
     }
 
     virtual void Draw() {
@@ -37,9 +34,9 @@ public:
     }
 };
 
-class modele : public main_model { //polimorfizm
+class modele : public main_model { //polimorfizm 
 public:
-    modele(const char* modelPath, Vector3 pos = { 0.0f, 0.0f, 0.0f }) : main_model(modelPath, pos) {
+    modele(const char* modelPath, Shader shader, Vector3 pos = { 0.0f, 0.0f, 0.0f }) : main_model(modelPath,shader, pos) {
 		//Nic nie potrzebne, bo używamy z klasy bazowej
     }
 
@@ -92,10 +89,10 @@ int main(void) {
     int shadowMapResolution = SHADOWMAP_RESOLUTION;
     SetShaderValue(shadowShader, GetShaderLocation(shadowShader, "shadowMapResolution"), &shadowMapResolution, SHADER_UNIFORM_INT);
 
-    main_model drukarka("modele/main.obj", { 0.0f, 0.0f, 0.0f });
-    modele table("modele/Y.obj", { 0.0f, 5.0f, 0.0f });
-    modele nozzle("modele/X.obj", { 0.0f, 31.5f, 0.0f });
-    modele rail("modele/Z.obj", { 0.0f, 30.0f, 0.0f });
+    main_model drukarka("modele/main.obj", shadowShader ,{ 0.0f, 0.0f, 0.0f });
+    modele table("modele/Y.obj", shadowShader, { 0.0f, 5.0f, 0.0f });
+    modele nozzle("modele/X.obj", shadowShader, { 0.0f, 31.5f, 0.0f });
+    modele rail("modele/Z.obj", shadowShader, { 0.0f, 30.0f, 0.0f });
     
     bool selected = false;
 
@@ -150,11 +147,9 @@ int main(void) {
         lightView = rlGetMatrixModelview();
         lightProj = rlGetMatrixProjection();
         // RYSOWANIE
+
         DrawGrid(20, 10.0f); //
-        drukarka.Draw(); //
-        table.Draw(); //
-        nozzle.Draw(); //
-        rail.Draw(); //
+
         EndMode3D();
         EndTextureMode();
         Matrix lightViewProj = MatrixMultiply(lightView, lightProj);
@@ -178,11 +173,6 @@ int main(void) {
         table.Draw(); //
         nozzle.Draw(); //
         rail.Draw(); //
-
-        drukarka.SetShader(shadowShader);
-        table.SetShader(shadowShader);
-        nozzle.SetShader(shadowShader);
-        rail.SetShader(shadowShader);
 
         EndMode3D();
         if (selected) DrawText("MODEL SELECTED", GetScreenWidth() - 110, 10, 10, GREEN);
