@@ -1,66 +1,67 @@
-﻿/*******************************************************************************************
-*
-*   raylib [models] example - Models loading
-*
-*   Example complexity rating: [★☆☆☆] 1/4
-*
-*   NOTE: raylib supports multiple models file formats:
-*
-*     - OBJ  > Text file format. Must include vertex position-texcoords-normals information,
-*              if files references some .mtl materials file, it will be loaded (or try to).
-*     - GLTF > Text/binary file format. Includes lot of information and it could
-*              also reference external files, raylib will try loading mesh and materials data.
-*     - IQM  > Binary file format. Includes mesh vertex data but also animation data,
-*              raylib can load .iqm animations.
-*     - VOX  > Binary file format. MagikaVoxel mesh format:
-*              https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox.txt
-*     - M3D  > Binary file format. Model 3D format:
-*              https://bztsrc.gitlab.io/model3d
-*
-*   Example originally created with raylib 2.0, last time updated with raylib 4.2
-*
-*   Example licensed under an unmodified zlib/libpng license, which is an OSI-certified,
-*   BSD-like license that allows static linking with closed source software
-*
-*   Copyright (c) 2014-2025 Ramon Santamaria (@raysan5)
-*
-********************************************************************************************/
-
+﻿
 #include "raylib.h"
-#include "raymath.h" // Required for: Vector3, Vector3Add(), Vector3Scale(), GetRayCollisionBox()
+#include "raymath.h" 
 
-class table {
+class main_model { //klasa dla glownego modelu
 public:
-    Model model1;
+	Model model1;
 	Vector3 position;
-   // BoundingBox bounds;
-    table(const char* modelPath, Vector3 pos = { 0.0f, 0.0f, 0.0f })
-        : position(pos)
+
+	main_model(const char* modelPath, Vector3 pos = { 0.0f, 0.0f, 0.0f })
+		: position(pos)
+	{
+		model1 = LoadModel(modelPath);
+	}
+
+	~main_model() {
+		UnloadModel(model1);
+	}
+
+	virtual void Draw() {
+		DrawModel(model1, position, 0.1f, DARKBLUE);
+	}
+
+};
+
+class modele: public main_model{ //polimorfizm ahh
+
+public:
+
+    BoundingBox bounds;
+
+    modele(const char* modelPath, Vector3 pos = { 0.0f, 0.0f, 0.0f })
+        : main_model(modelPath, pos) 
     {
-        model1 = LoadModel(modelPath);
-        //bounds = GetMeshBoundingBox(model1.meshes[0]);
+        bounds = GetMeshBoundingBox(model1.meshes[0]);
     }
 
-    ~table() {
-        UnloadModel(model1);
+    ~modele() {
+        // Nie trzeba zwalniać model1, bo robi to destruktor klasy bazowej
     }
 
-    void Draw() const {
-        DrawModel(model1, position, 0.1f, RED);
-       // DrawBoundingBox(GetTransformedBoundingBox(), GREEN);
-    }
-    /*void Update() {
-        position.z += moveDirection * stepSize;
-        moveSteps++;
 
-        if (moveSteps >= maxSteps) {
-            moveDirection *= -1;
-            moveSteps = 0;
+    void Draw() override {
+
+        if (IsKeyDown(KEY_W)) {
+            position.y += stepSize;
         }
-        
-    }*/
-private:
-    /*BoundingBox GetTransformedBoundingBox() const {
+        if (IsKeyDown(KEY_S)) {
+            position.y -= stepSize;
+        }
+        DrawModel(model1, position, 0.1f, RED);
+        DrawBoundingBox(GetTransformedBoundingBox(), GREEN);
+    }
+    void Update() {
+        if (IsKeyDown(KEY_W)) {
+            position.y += stepSize;
+        }
+        if (IsKeyDown(KEY_S)) {
+            position.y -= stepSize;
+        }
+    
+    }
+
+    BoundingBox GetTransformedBoundingBox() const {
         // Skalujemy i przesuwamy box zgodnie z modelem
         BoundingBox transformed = bounds;
         float scale = 0.1f;
@@ -68,13 +69,31 @@ private:
         transformed.max = Vector3Add(Vector3Scale(transformed.max, scale), position);
         return transformed;
     }
+private:
+        int moveDirection = 1;
+        int moveSteps = 0;
+        const int maxSteps = 20;
+        float stepSize = 0.5f;
 
-    int moveDirection = 1;
-    int moveSteps = 0;
-    const int maxSteps = 20;
-    float stepSize = 0.5f;
-    */
 };
+
+void SprawdzKolizje(modele& model1, modele& model2) {
+	bool collision = false; // Flaga kolizji
+    BoundingBox bounds1 = model1.bounds;
+    BoundingBox bounds2 = model2.bounds;
+
+    collision = CheckCollisionBoxes(model1.GetTransformedBoundingBox(), model2.GetTransformedBoundingBox()); // Ustaw flagę kolizji
+
+    if (collision) {
+        // Tutaj możesz dodać dodatkowe akcje, np. zmianę koloru, zatrzymanie ruchu itp.
+		// Przykład: zmiana koloru modelu na czerwony
+		DrawText("KOLIZJA!", 10, 10, 20, RED);
+	}
+	else {
+		// Jeśli nie ma kolizji, przywróć domyślny kolor
+		DrawText("BRAK KOLIZJI", 10, 10, 20, GREEN);
+    }
+}
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -95,16 +114,16 @@ int main(void)
        camera.fovy = 55.0f;                       // Camera field-of-view Y
        camera.projection = CAMERA_PERSPECTIVE;    // Camera mode type
 
-    Model model = LoadModel("main.obj");                 // Load model
-
-    table myTable("Y.obj", { 0.0f, 5.0f, 0.0f });
-	table myTable2("X.obj", { 0.0f, 51.0f, 0.0f });
+	main_model drukarka("main.obj", { 0.0f, 0.0f, 0.0f }); // Load model
+    modele table("Y.obj", { 0.0f, 5.0f, 0.0f });
+	modele nozzle("X.obj", { 0.0f, 31.5f, 0.0f });
+	modele rail("Z.obj", { 0.0f, 30.0f, 0.0f }); // { 0.0f, 30.0f, 0.0f } });
     //Texture2D texture = LoadTexture("resources/models/obj/castle_diffuse.png"); // Load model texture 
     //model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture;            // Set map diffuse texture
 
     Vector3 position = { 0.0f, 0.0f, 0.0f };                    // Set model position
 
-    BoundingBox bounds = GetMeshBoundingBox(model.meshes[0]);   // Set model bounds
+    //BoundingBox bounds = GetMeshBoundingBox(model.meshes[0]);   // Set model bounds
 
     // NOTE: bounds are calculated from the original size of the model,
     // if model is scaled on drawing, bounds must be also scaled
@@ -119,6 +138,7 @@ int main(void)
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
     {
+
         // Update
         //----------------------------------------------------------------------------------
         UpdateCamera(&camera, CAMERA_FREE);
@@ -137,11 +157,11 @@ int main(void)
                     IsFileExtension(droppedFiles.paths[0], ".iqm") ||
                     IsFileExtension(droppedFiles.paths[0], ".m3d"))       // Model file formats supported
                 {
-                    UnloadModel(model);                         // Unload previous model
-                    model = LoadModel(droppedFiles.paths[0]);   // Load new model
+                    //UnloadModel(model);                         // Unload previous model
+                   // model = LoadModel(droppedFiles.paths[0]);   // Load new model
                     //model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture; // Set current map diffuse texture
 
-                    bounds = GetMeshBoundingBox(model.meshes[0]);
+                    //bounds = GetMeshBoundingBox(model.meshes[0]);
 
                     // TODO: Move camera position from target enough distance to visualize model properly
                 }
@@ -154,15 +174,15 @@ int main(void)
                 }
             }
 
-            UnloadDroppedFiles(droppedFiles);    // Unload filepaths from memory
+           // UnloadDroppedFiles(droppedFiles);    // Unload filepaths from memory
         }
 
         // Select model on mouse click
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         {
             // Check collision between ray and box
-            if (GetRayCollisionBox(GetScreenToWorldRay(GetMousePosition(), camera), bounds).hit) selected = !selected;
-            else selected = false;
+           // if (GetRayCollisionBox(GetScreenToWorldRay(GetMousePosition(), camera), bounds).hit) selected = !selected;
+           // else selected = false;
         }
         //----------------------------------------------------------------------------------
 
@@ -174,20 +194,23 @@ int main(void)
 
         BeginMode3D(camera);
 
-        DrawModel(model, position, 0.1f, WHITE);        // Draw 3d model with texture
-        myTable.Draw();
-		myTable2.Draw();
+		drukarka.Draw();
+        table.Draw();
+		nozzle.Draw();
+		rail.Draw();
+
+        //rail.Update();
         //myTable.Update();
         DrawGrid(20, 10.0f);         // Draw a grid
 
-        if (selected) DrawBoundingBox(bounds, GREEN);   // Draw selection box
+        //if (selected) DrawBoundingBox(bounds, GREEN);   // Draw selection box
 
         EndMode3D();
 
         DrawText("Drag & drop model to load mesh/texture.", 10, GetScreenHeight() - 20, 10, DARKGRAY);
         if (selected) DrawText("MODEL SELECTED", GetScreenWidth() - 110, 10, 10, GREEN);
 
-        DrawText("(c) Castle 3D model by Alberto Cano", screenWidth - 200, screenHeight - 20, 10, GRAY);
+        SprawdzKolizje(table , rail);
 
         DrawFPS(10, 10);
 
@@ -198,7 +221,7 @@ int main(void)
     // De-Initialization
     //--------------------------------------------------------------------------------------
     //UnloadTexture(texture);     // Unload texture
-    UnloadModel(model);         // Unload model
+        // Unload model
 
     CloseWindow();              // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
