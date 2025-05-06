@@ -13,7 +13,7 @@
 RenderTexture2D LoadShadowmapRenderTexture(int width, int height);
 void UnloadShadowmapRenderTexture(RenderTexture2D target);
 
-class main_model { //klasa dla glownego modelu
+class main_model { //glowny model
 public:
     Model model1;
     Vector3 position;
@@ -34,52 +34,38 @@ public:
 
 };
 
-class modele : public main_model { //polimorfizm ahh
+class modele : public main_model { //polimorfizm
 
 public:
-    
-    //BoundingBox bounds;
-
     modele(const char* modelPath, Vector3 pos = { 0.0f, 0.0f, 0.0f })
         : main_model(modelPath, pos)
     {
-        //bounds = GetMeshBoundingBox(model1.meshes[0]);
+        //
     }
 
     ~modele() {
         // Nie trzeba zwalniać model1, bo robi to destruktor klasy bazowej
     }
 
-
     void Draw() override {
 
-        if (IsKeyDown(KEY_W)) {
+        if (IsKeyDown(KEY_R)) {
             position.y += stepSize;
         }
-        if (IsKeyDown(KEY_S)) {
+        if (IsKeyDown(KEY_F)) {
             position.y -= stepSize;
         }
         DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, RED);
-        //DrawBoundingBox(GetTransformedBoundingBox(), GREEN);
     }
     void Update() {
-        if (IsKeyDown(KEY_W)) {
+        if (IsKeyDown(KEY_R)) {
             position.y += stepSize;
         }
-        if (IsKeyDown(KEY_S)) {
+        if (IsKeyDown(KEY_F)) {
             position.y -= stepSize;
         }
 
     }
-    /*
-    BoundingBox GetTransformedBoundingBox() const {
-        // Skalujemy i przesuwamy box zgodnie z modelem
-        BoundingBox transformed = bounds;
-        float scale = 0.1f;
-        transformed.min = Vector3Add(Vector3Scale(transformed.min, scale), position);
-        transformed.max = Vector3Add(Vector3Scale(transformed.max, scale), position);
-        return transformed;
-    }*/
 private:
     int moveDirection = 1;
     int moveSteps = 0;
@@ -87,39 +73,13 @@ private:
     float stepSize = 0.5f;
 
 };
-/*
-void SprawdzKolizje(modele& model1, modele& model2) {
-    bool collision = false; // Flaga kolizji
-    BoundingBox bounds1 = model1.bounds;
-    BoundingBox bounds2 = model2.bounds;
 
-    collision = CheckCollisionBoxes(model1.GetTransformedBoundingBox(), model2.GetTransformedBoundingBox()); // Ustaw flagę kolizji
-
-    if (collision) {
-        // Tutaj możesz dodać dodatkowe akcje, np. zmianę koloru, zatrzymanie ruchu itp.
-        // Przykład: zmiana koloru modelu na czerwony
-        DrawText("KOLIZJA!", 10, 10, 20, RED);
-    }
-    else {
-        // Jeśli nie ma kolizji, przywróć domyślny kolor
-        DrawText("BRAK KOLIZJI", 10, 10, 20, GREEN);
-    }
-}*/
-
-//------------------------------------------------------------------------------------
-// Program main entry point
-//------------------------------------------------------------------------------------
 int main(void)
 {
-    // Initialization
-    //--------------------------------------------------------------------------------------
     const int screenWidth = 800;
     const int screenHeight = 450;
 
     SetConfigFlags(FLAG_MSAA_4X_HINT);
-    // Shadows are a HUGE topic, and this example shows an extremely simple implementation of the shadowmapping algorithm,
-    // which is the industry standard for shadows. This algorithm can be extended in a ridiculous number of ways to improve
-    // realism and also adapt it for different scenes. This is pretty much the simplest possible implementation.
     InitWindow(screenWidth, screenHeight, "Projekt obiektowka");
 
     Camera3D cam = { 0 };
@@ -147,12 +107,12 @@ int main(void)
     int shadowMapResolution = SHADOWMAP_RESOLUTION;
     SetShaderValue(shadowShader, GetShaderLocation(shadowShader, "shadowMapResolution"), &shadowMapResolution, SHADER_UNIFORM_INT);
 
-    main_model drukarka("modele/main.obj", { 0.0f, 0.0f, 0.0f }); // Load model
+    main_model drukarka("modele/main.obj", { 0.0f, 0.0f, 0.0f });
     modele table("modele/Y.obj", { 0.0f, 5.0f, 0.0f });
     modele nozzle("modele/X.obj", { 0.0f, 31.5f, 0.0f });
     modele rail("modele/Z.obj", { 0.0f, 30.0f, 0.0f });
 
-    for (int i = 0; i < drukarka.model1.materialCount; i++)
+    for (int i = 0; i < drukarka.model1.materialCount; i++) //low key trzeba ogarnąć o co z tych chodzi
     {
         drukarka.model1.materials[i].shader = shadowShader;
     }
@@ -160,11 +120,9 @@ int main(void)
     bool selected = false;
 
     RenderTexture2D shadowMap = LoadShadowmapRenderTexture(SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION);
-    // For the shadowmapping algorithm, we will be rendering everything from the light's point of view
     Camera3D lightCam = { 0 };
     lightCam.position = Vector3Scale(lightDir, -15.0f);
     lightCam.target = Vector3Zero();
-    // Use an orthographic projection for directional lights
     lightCam.projection = CAMERA_ORTHOGRAPHIC;
     lightCam.up = { 0.0f, 1.0f, 0.0f };
     lightCam.fovy = 20.0f;
@@ -175,15 +133,11 @@ int main(void)
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
     {
-
-        // Update
-        //----------------------------------------------------------------------------------
         float dt = GetFrameTime();
 
         Vector3 cameraPos = cam.position;
         SetShaderValue(shadowShader, shadowShader.locs[SHADER_LOC_VECTOR_VIEW], &cameraPos, SHADER_UNIFORM_VEC3);
         UpdateCamera(&cam, CAMERA_FREE);
-
 
         const float cameraSpeed = 0.05f;
         if (IsKeyDown(KEY_LEFT))
@@ -214,13 +168,6 @@ int main(void)
         //----------------------------------------------------------------------------------
         BeginDrawing();
 
-        // First, render all objects into the shadowmap
-        // The idea is, we record all the objects' depths (as rendered from the light source's point of view) in a buffer
-        // Anything that is "visible" to the light is in light, anything that isn't is in shadow
-        // We can later use the depth buffer when rendering everything from the player's point of view
-        // to determine whether a given point is "visible" to the light
-
-        // Record the light matrices for future use!
         Matrix lightView;
         Matrix lightProj;
         BeginTextureMode(shadowMap);
@@ -259,26 +206,22 @@ int main(void)
         EndMode3D();
         if (selected) DrawText("MODEL SELECTED", GetScreenWidth() - 110, 10, 10, GREEN);
 
-        //SprawdzKolizje(table, rail);
         DrawFPS(10, 10);
         EndDrawing();
 
-        if (IsKeyPressed(KEY_F))
+        if (IsKeyPressed(KEY_T))
         {
             TakeScreenshot("shaders_shadowmap.png");
         }
-        //----------------------------------------------------------------------------------
     }
 
     // De-Initialization
-    //--------------------------------------------------------------------------------------
 
     UnloadShader(shadowShader);
     UnloadShadowmapRenderTexture(shadowMap);
 
-    CloseWindow();        // Close window and OpenGL context
-    //--------------------------------------------------------------------------------------
-
+    CloseWindow();
+    
     return 0;
 }
 
@@ -320,8 +263,6 @@ void UnloadShadowmapRenderTexture(RenderTexture2D target)
 {
     if (target.id > 0)
     {
-        // NOTE: Depth texture/renderbuffer is automatically
-        // queried and deleted before deleting framebuffer
         rlUnloadFramebuffer(target.id);
     }
 }
