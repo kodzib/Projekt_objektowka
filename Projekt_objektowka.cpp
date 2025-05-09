@@ -1,4 +1,9 @@
-﻿#include "raylib.h"
+﻿#include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <stdlib.h>
+#include "raylib.h"
 #include "raymath.h"
 #include "rlgl.h"
 
@@ -9,9 +14,11 @@
 #endif
 
 #define SHADOWMAP_RESOLUTION 2048
+#define MAX_FILEPATH_SIZE    2048
 
 RenderTexture2D LoadShadowmapRenderTexture(int width, int height);
 void UnloadShadowmapRenderTexture(RenderTexture2D target);
+void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points);
 
 class main_model { //glowny model
 public:
@@ -142,6 +149,16 @@ int main(void) {
 
     // Main game loop
     while (!WindowShouldClose()) {
+		std::vector <Vector4> points;
+        if (IsFileDropped()) {
+			char filePath[MAX_FILEPATH_SIZE] = { 0 };
+            FilePathList droppedFiles = LoadDroppedFiles();
+            TextCopy(filePath, droppedFiles.paths[0]);
+			std::cout << filePath << std::endl;
+            GcodeAnalizer(std::string(filePath), points);
+            UnloadDroppedFiles(droppedFiles);
+        }
+
         float dt = GetFrameTime();
 
         Vector3 cameraPos = cam.position;
@@ -267,4 +284,49 @@ void UnloadShadowmapRenderTexture(RenderTexture2D target) {
     if (target.id > 0) {
         rlUnloadFramebuffer(target.id);
     }
+}
+
+void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points) {  
+  std::fstream gcode_file;  
+  gcode_file.open(file_path, std::ios::in);  
+  if (gcode_file.is_open()) {  
+      std::string line;  
+      while (std::getline(gcode_file, line)) {  
+          if (line.rfind("G1", 0) == 0) {  
+              float X = 0.0f;  
+              float Y = 0.0f;  
+              float Z = 0.0f;
+              float F = 0.0f;
+              int x_pos = line.find("X");  
+              int y_pos = line.find("Y");  
+              int z_pos = line.find("Z");
+			  int f_pos = line.find("F");
+              int space_pos = 0;  
+              if (x_pos > 0) {  
+                  space_pos = line.find(" ", x_pos);  
+                  X = std::stof(line.substr(x_pos + 1, space_pos - x_pos - 1));  
+              }  
+              space_pos = 0;  
+              if (y_pos > 0) {  
+                  space_pos = line.find(" ", y_pos);  
+                  Y = std::stof(line.substr(y_pos + 1, space_pos - y_pos - 1));  
+              }  
+              space_pos = 0;  
+              if (z_pos > 0) {  
+                  space_pos = line.find(" ", z_pos);  
+                  Z = std::stof(line.substr(z_pos + 1, space_pos - z_pos - 1));  
+              }
+              space_pos = 0;
+              if (f_pos > 0) {
+                  space_pos = line.find(" ", f_pos);
+                  F = std::stof(line.substr(f_pos + 1, space_pos - f_pos - 1));
+              }
+              points.push_back({X, Y, Z, F});  
+          }  
+      }  
+      gcode_file.close();  
+  } else {  
+      std::cout << "Nie można otworzyć pliku gcode.txt" << std::endl;  
+  }
+  gcode_file.close();
 }
