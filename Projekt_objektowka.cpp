@@ -43,6 +43,7 @@ public:
 
 class modele : public main_model { //polimorfizm 
 public:
+
     modele(const char* modelPath, Shader shader, Vector3 pos = { 0.0f, 0.0f, 0.0f }) : main_model(modelPath,shader, pos) {
 		//Nic nie potrzebne, bo używamy z klasy bazowej
     }
@@ -54,9 +55,29 @@ public:
     void Draw() override {
         DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, RED);
     }
-private:
 
-    float stepSize = 0.5f;
+    //mozna potem usunac 
+    void PrintModelSize() {
+        BoundingBox box = GetMeshBoundingBox(model1.meshes[0]);
+
+        for (int i = 1; i < model1.meshCount; i++) {
+            BoundingBox meshBox = GetMeshBoundingBox(model1.meshes[i]);
+            box.min = Vector3Min(box.min, meshBox.min);
+            box.max = Vector3Max(box.max, meshBox.max);
+        }
+
+        Vector3 size = {
+            box.max.x - box.min.x,
+            box.max.y - box.min.y,
+            box.max.z - box.min.z
+        };
+
+        std::cout << "Model \"" << "\" ma rozmiary:" << std::endl;
+        std::cout << "  Szerokość (X): " << size.x/10 << std::endl;
+        std::cout << "  Wysokość  (Y): " << size.y/10 << std::endl;
+        std::cout << "  Głębokość (Z): " << size.z/10 << std::endl;
+        std::cout << std::endl;
+    }
 };
 
 class TargetPoint {
@@ -64,20 +85,25 @@ public:
     std::vector<Vector4> Target_positions;  
     float speed;
     int index = 0; 
+
     TargetPoint(std::vector<Vector4> pos, float s) : Target_positions(pos), speed(s) {}
 
     ~TargetPoint() {}
 
     void MoveToPoint(modele* x, modele* y, modele* z) {
+
         float epsilon = 0.01f; //kryterium jakosciowe ahh
         if (index < 0 || index >= Target_positions.size()) return;  
 
-        Vector4 target = Target_positions[index]/10;
+        Vector4 target = Target_positions[index]/10; // tu jakies skalowanie, narazie przez 10 podzielilem bo tak
+
+        //wyswietla w konsolce narazie mozna potem usunac
         TraceLog(LOG_INFO, TextFormat("--- Ruch do punktu %d ---", index));
         TraceLog(LOG_INFO, TextFormat("Cel: X=%.2f, Y=%.2f, Z=%.2f, F=%.2f", target.x, target.y, target.z, target.w));
         TraceLog(LOG_INFO, TextFormat("Pozycja dyszy (X): %.2f", x->position.x));
         TraceLog(LOG_INFO, TextFormat("Pozycja szyny (Y): %.2f", y->position.y));
         TraceLog(LOG_INFO, TextFormat("Pozycja stolu (Z): %.2f", z->position.z));
+
         // Ruch w osi X
         if (x->position.x < target.x && abs((x->position.x - target.x)) >epsilon) {
             x->position.x += speed;
@@ -104,6 +130,7 @@ public:
             z->position.z -= speed;
         }
 
+        //przejscie do nastepnego punktu
 		if (abs((x->position.x - target.x)) <= epsilon && abs((y->position.y - target.y)) <= epsilon && abs((z->position.z - target.z)) <= epsilon){
             index++;
 		}
@@ -111,7 +138,7 @@ public:
 };
 
 int main(void) {
-    TargetPoint cel({}, 0.009f);
+
     const int screenWidth = 1600;
     const int screenHeight = 900;
     SetConfigFlags(FLAG_MSAA_4X_HINT);
@@ -141,14 +168,38 @@ int main(void) {
     int shadowMapResolution = SHADOWMAP_RESOLUTION;
     SetShaderValue(shadowShader, GetShaderLocation(shadowShader, "shadowMapResolution"), &shadowMapResolution, SHADER_UNIFORM_INT);
 
+    //ładowanie modeli + klasy do ruchu
+    TargetPoint cel({}, 0.009f);
     main_model drukarka("modele/main.obj", shadowShader ,{ 0.0f, 0.0f, 0.0f });
-    //modele table("modele/Y.obj", shadowShader, { 0.0f, 5.4f, 0.0f });
+    //modele table("modele/Y.obj", shadowShader, { 0.0f, 5.4f, 0.0f }); //mozna pozniej odkomentowac
     //modele nozzle("modele/X.obj", shadowShader, { 0.0f, 31.4f, 0.0f });
     //modele rail("modele/Z.obj", shadowShader, { 0.0f, 30.0f, 0.0f });
     modele table("modele/Y.obj", shadowShader, { 0.0f, 0.0f, 0.0f });
     modele nozzle("modele/X.obj", shadowShader, { 0.0f, 0.0f, 0.0f });
     modele rail("modele/Z.obj", shadowShader, { 0.0f, 0.0f, 0.0f });
-    bool selected = false;
+
+    table.PrintModelSize();
+    nozzle.PrintModelSize();
+    rail.PrintModelSize();
+    //wymiary w raylibie w f
+    // Model "table" ma rozmiary: moze do skalowania sie przyda
+    /*
+    SzerokoťŠ(X) : 23.4998
+        WysokoťŠ(Y) : 4.6712
+        G│ŕbokoťŠ(Z) : 23.4998
+
+        Model "nozzle" ma rozmiary :
+    SzerokoťŠ(X) : 7.3934
+        WysokoťŠ(Y) : 6.64
+        G│ŕbokoťŠ(Z) : 7.22
+
+        Model "rail" ma rozmiary :
+    SzerokoťŠ(X) : 41.9902
+        WysokoťŠ(Y) : 11.2567
+        G│ŕbokoťŠ(Z) : 13.2322
+    */
+
+    bool selected = false; //mozna usunac chyba?
 
     RenderTexture2D shadowMap = LoadShadowmapRenderTexture(SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION);
     Camera3D lightCam = { 0 };
@@ -221,15 +272,8 @@ int main(void) {
 
         BeginMode3D(cam);
 
-        // Draw the same exact things as we drew in the shadowmap!
-        // RYSOWANIE
-        DrawGrid(20, 10.0f); //
-        drukarka.Draw(); //
-        table.Draw(); //
-        nozzle.Draw(); //
-        rail.Draw(); //
-
-        if (IsFileDropped()) {
+        //wczytywanie z gcodea do vectora w klasie
+      if (IsFileDropped()) {
             char filePath[MAX_FILEPATH_SIZE] = { 0 };
             FilePathList droppedFiles = LoadDroppedFiles();
             TextCopy(filePath, droppedFiles.paths[0]);
@@ -238,14 +282,23 @@ int main(void) {
             UnloadDroppedFiles(droppedFiles);
         }
 
+        // Draw the same exact things as we drew in the shadowmap!
+        // RYSOWANIE
+        DrawGrid(20, 10.0f); //
+        drukarka.Draw(); //
+        table.Draw(); //
+        nozzle.Draw(); //
+        rail.Draw(); //
+
         cel.MoveToPoint(&nozzle, &rail, &table);
 
         EndMode3D();
-        if (selected) DrawText("MODEL SELECTED", GetScreenWidth() - 110, 10, 10, GREEN);
+        if (selected) DrawText("MODEL SELECTED", GetScreenWidth() - 110, 10, 10, GREEN); //mozna usunac chyba?
 
         DrawFPS(10, 10);
         EndDrawing();
 
+        //crazy , tez chyba mozna usunac
         if (IsKeyPressed(KEY_T)) {
             TakeScreenshot("shaders_shadowmap.png");
         }
