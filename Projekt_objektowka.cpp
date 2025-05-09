@@ -61,45 +61,57 @@ private:
 
 class TargetPoint {
 public:
-    Vector3 Target_position;
+    std::vector<Vector4> Target_positions;  
     float speed;
-    TargetPoint(Vector3 pos, float s) : Target_position(pos), speed(s) {}
+    int index = 0; 
+    TargetPoint(std::vector<Vector4> pos, float s) : Target_positions(pos), speed(s) {}
 
     ~TargetPoint() {}
 
     void MoveToPoint(modele* x, modele* y, modele* z) {
-        int direction;
+        float epsilon = 0.01f; //kryterium jakosciowe ahh
+        if (index < 0 || index >= Target_positions.size()) return;  
 
-        // Ruch w osi 
+        Vector4 target = Target_positions[index]/10;
+        TraceLog(LOG_INFO, TextFormat("--- Ruch do punktu %d ---", index));
+        TraceLog(LOG_INFO, TextFormat("Cel: X=%.2f, Y=%.2f, Z=%.2f, F=%.2f", target.x, target.y, target.z, target.w));
+        TraceLog(LOG_INFO, TextFormat("Pozycja dyszy (X): %.2f", x->position.x));
+        TraceLog(LOG_INFO, TextFormat("Pozycja szyny (Y): %.2f", y->position.y));
+        TraceLog(LOG_INFO, TextFormat("Pozycja stolu (Z): %.2f", z->position.z));
+        // Ruch w osi X
+        if (x->position.x < target.x && abs((x->position.x - target.x)) >epsilon) {
+            x->position.x += speed;
+        }
+        else if (abs((x->position.x - target.x)) > epsilon){
+            x->position.x -= speed;
+        }
 
-        if (x->position.x <Target_position.x) {
-            direction = 1;
+        // Ruch w osi Y
+        if (y->position.y < target.y && abs((y->position.y - target.y)) >epsilon) {
+            y->position.y += speed;
+            x->position.y += speed;
         }
-        else {
-            direction = -1;
+        else if (abs((y->position.y - target.y)) > epsilon) {
+            y->position.y -= speed;
+            x->position.y -= speed;
         }
-        x->position.x += speed * direction;
 
-        if (y->position.y < Target_position.y) {
-            direction = 1;
+        // Ruch w osi Z
+        if (z->position.z < target.z  && abs((z->position.z - target.z )) >epsilon) {
+            z->position.z += speed;
         }
-        else {
-            direction = -1;
+        else if(abs((z->position.z - target.z)) > epsilon) {
+            z->position.z -= speed;
         }
-        y->position.y += speed * direction;
-        x->position.y += speed * direction;
 
-        if (z->position.z < Target_position.z) {
-            direction = 1;
-        }
-        else {
-            direction = -1;
-        }
-        z->position.z += speed * direction;
+		if (abs((x->position.x - target.x)) <= epsilon && abs((y->position.y - target.y)) <= epsilon && abs((z->position.z - target.z)) <= epsilon){
+            index++;
+		}
     }
 };
 
 int main(void) {
+    TargetPoint cel({}, 0.009f);
     const int screenWidth = 1600;
     const int screenHeight = 900;
     SetConfigFlags(FLAG_MSAA_4X_HINT);
@@ -130,10 +142,12 @@ int main(void) {
     SetShaderValue(shadowShader, GetShaderLocation(shadowShader, "shadowMapResolution"), &shadowMapResolution, SHADER_UNIFORM_INT);
 
     main_model drukarka("modele/main.obj", shadowShader ,{ 0.0f, 0.0f, 0.0f });
-    modele table("modele/Y.obj", shadowShader, { 0.0f, 5.4f, 0.0f });
-    modele nozzle("modele/X.obj", shadowShader, { 0.0f, 31.4f, 0.0f });
-    modele rail("modele/Z.obj", shadowShader, { 0.0f, 30.0f, 0.0f });
-    
+    //modele table("modele/Y.obj", shadowShader, { 0.0f, 5.4f, 0.0f });
+    //modele nozzle("modele/X.obj", shadowShader, { 0.0f, 31.4f, 0.0f });
+    //modele rail("modele/Z.obj", shadowShader, { 0.0f, 30.0f, 0.0f });
+    modele table("modele/Y.obj", shadowShader, { 0.0f, 0.0f, 0.0f });
+    modele nozzle("modele/X.obj", shadowShader, { 0.0f, 0.0f, 0.0f });
+    modele rail("modele/Z.obj", shadowShader, { 0.0f, 0.0f, 0.0f });
     bool selected = false;
 
     RenderTexture2D shadowMap = LoadShadowmapRenderTexture(SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION);
@@ -149,15 +163,6 @@ int main(void) {
 
     // Main game loop
     while (!WindowShouldClose()) {
-		std::vector <Vector4> points;
-        if (IsFileDropped()) {
-			char filePath[MAX_FILEPATH_SIZE] = { 0 };
-            FilePathList droppedFiles = LoadDroppedFiles();
-            TextCopy(filePath, droppedFiles.paths[0]);
-			std::cout << filePath << std::endl;
-            GcodeAnalizer(std::string(filePath), points);
-            UnloadDroppedFiles(droppedFiles);
-        }
 
         float dt = GetFrameTime();
 
@@ -224,7 +229,15 @@ int main(void) {
         nozzle.Draw(); //
         rail.Draw(); //
 
-        TargetPoint cel( {5.0f, 5.0f, 5.0f }, 0.01f);
+        if (IsFileDropped()) {
+            char filePath[MAX_FILEPATH_SIZE] = { 0 };
+            FilePathList droppedFiles = LoadDroppedFiles();
+            TextCopy(filePath, droppedFiles.paths[0]);
+            std::cout << filePath << std::endl;
+            GcodeAnalizer(std::string(filePath), cel.Target_positions);
+            UnloadDroppedFiles(droppedFiles);
+        }
+
         cel.MoveToPoint(&nozzle, &rail, &table);
 
         EndMode3D();
