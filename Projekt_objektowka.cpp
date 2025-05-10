@@ -25,7 +25,8 @@ public:
     Model model1;
     Vector3 position;
 
-    main_model(const char* modelPath,Shader shader, Vector3 pos = { 0.0f, 0.0f, 0.0f }) : position(pos) {
+    main_model(const char* modelPath,Shader shader, Vector3 pos = { 0.0f, 0.0f, 0.0f })  {
+        position = pos;
         model1 = LoadModel(modelPath);
         for (int i = 0; i < model1.materialCount; i++) { //low key trzeba ogarnąć o co z tych chodzi, 
             model1.materials[i].shader = shader;
@@ -56,6 +57,11 @@ public:
         DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, RED);
     }
 
+    void UpdateMovement(float moveSpeed = 0.01f) {
+        if (IsKeyDown(KEY_Z)) position.z -= moveSpeed;
+        if (IsKeyDown(KEY_X)) position.z += moveSpeed;
+        TraceLog(LOG_INFO, TextFormat("Pozycja modelu: X=%.2f, Y=%.2f, Z=%.2f", position.x, position.y, position.z));
+    }
     //mozna potem usunac 
     void PrintModelSize() {
         BoundingBox box = GetMeshBoundingBox(model1.meshes[0]);
@@ -84,19 +90,22 @@ class TargetPoint {
 public:
     std::vector<Vector4> Target_positions;  
     float speed;
-    int index = 0; 
 
-    TargetPoint(std::vector<Vector4> pos, float s) : Target_positions(pos), speed(s) {}
+    TargetPoint(std::vector<Vector4> pos) {
+		Target_positions = pos;
+        epsilon = 0.0f;
+        speed = 0.0f;
+    }
 
     ~TargetPoint() {}
 
     void MoveToPoint(modele* x, modele* y, modele* z) {
 
-        float epsilon = 0.01f; //kryterium jakosciowe ahh
-        if (index < 0 || index >= Target_positions.size()) return;  
+        if (index == Target_positions.size()) return;  
 
         Vector4 target = Target_positions[index]/10; // tu jakies skalowanie, narazie przez 10 podzielilem bo tak
-
+		speed = target.w/60 * GetFrameTime(); //prędkość ruchu, wczytana z gcodea
+        epsilon = speed;
         //wyswietla w konsolce narazie mozna potem usunac
         TraceLog(LOG_INFO, TextFormat("--- Ruch do punktu %d ---", index));
         TraceLog(LOG_INFO, TextFormat("Cel: X=%.2f, Y=%.2f, Z=%.2f, F=%.2f", target.x, target.y, target.z, target.w));
@@ -132,9 +141,16 @@ public:
 
         //przejscie do nastepnego punktu
 		if (abs((x->position.x - target.x)) <= epsilon && abs((y->position.y - target.z)) <= epsilon && abs((z->position.z - target.y)) <= epsilon){
+            x->position.x = target.x;
+            y->position.y = target.z;
+			x->position.y = target.z; 
+            z->position.z = target.y;
             index++;
 		}
     }
+private:
+    float epsilon; //kryterium jakosciowe ahh
+    int index = 0;
 };
 
 int main(void) {
@@ -169,14 +185,11 @@ int main(void) {
     SetShaderValue(shadowShader, GetShaderLocation(shadowShader, "shadowMapResolution"), &shadowMapResolution, SHADER_UNIFORM_INT);
 
     //ładowanie modeli + klasy do ruchu
-    TargetPoint cel({}, 0.009f);
+    TargetPoint cel({});
     main_model drukarka("modele/main.obj", shadowShader ,{ 0.0f, 0.0f, 0.0f });
-    //modele table("modele/Y.obj", shadowShader, { 0.0f, 5.4f, 0.0f }); //mozna pozniej odkomentowac
-    //modele nozzle("modele/X.obj", shadowShader, { 0.0f, 31.4f, 0.0f });
-    //modele rail("modele/Z.obj", shadowShader, { 0.0f, 30.0f, 0.0f });
-    modele table("modele/Y.obj", shadowShader, { 0.0f, 0.0f, 0.0f });
-    modele nozzle("modele/X.obj", shadowShader, { 0.0f, 0.0f, 0.0f });
-    modele rail("modele/Z.obj", shadowShader, { 0.0f, 0.0f, 0.0f });
+    modele table("modele/Y.obj", shadowShader, { 0.0f, 5.4f, -11.95f }); //Poruszaj tym stolem za pomoca Z i X a potem z konsoli odczytaj i podmien ostatnia wspolrzedna na taka jaka ma byc startowa platformy
+    modele nozzle("modele/X.obj", shadowShader, { 0.0f, 31.4f, 0.0f });
+    modele rail("modele/Z.obj", shadowShader, { 0.0f, 30.0f, 0.0f });
 
     table.PrintModelSize();
     nozzle.PrintModelSize();
@@ -199,8 +212,6 @@ int main(void) {
         G│ŕbokoťŠ(Z) : 13.2322
     */
 
-    bool selected = false; //mozna usunac chyba?
-
     RenderTexture2D shadowMap = LoadShadowmapRenderTexture(SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION);
     Camera3D lightCam = { 0 };
     lightCam.position = Vector3Scale(lightDir, -15.0f);
@@ -210,18 +221,12 @@ int main(void) {
     lightCam.fovy = 20.0f;
 
     DisableCursor();
-    SetTargetFPS(60);
+    SetTargetFPS(200); //dalem wiecej klatek zeby ruch byl plynniejszy
 
     // Main game loop
     while (!WindowShouldClose()) {
 		std::vector <Vector4> points;
-        if (IsFileDropped()) {
-			char filePath[MAX_FILEPATH_SIZE] = { 0 };
-            FilePathList droppedFiles = LoadDroppedFiles();
-            TextCopy(filePath, droppedFiles.paths[0]);
-            GcodeAnalizer(std::string(filePath), points);
-            UnloadDroppedFiles(droppedFiles);
-        }
+
 
         float dt = GetFrameTime();
 
@@ -293,6 +298,7 @@ int main(void) {
         // Draw the same exact things as we drew in the shadowmap!
         // RYSOWANIE
         DrawGrid(20, 10.0f); //
+        table.UpdateMovement();
         drukarka.Draw(); //
         table.Draw(); //
         nozzle.Draw(); //
@@ -301,7 +307,6 @@ int main(void) {
         cel.MoveToPoint(&nozzle, &rail, &table);
 
         EndMode3D();
-        if (selected) DrawText("MODEL SELECTED", GetScreenWidth() - 110, 10, 10, GREEN); //mozna usunac chyba?
 
         DrawFPS(10, 10);
         EndDrawing();
