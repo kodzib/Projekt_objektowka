@@ -154,7 +154,6 @@ int main(void) {
 			char filePath[MAX_FILEPATH_SIZE] = { 0 };
             FilePathList droppedFiles = LoadDroppedFiles();
             TextCopy(filePath, droppedFiles.paths[0]);
-			std::cout << filePath << std::endl;
             GcodeAnalizer(std::string(filePath), points);
             UnloadDroppedFiles(droppedFiles);
         }
@@ -290,13 +289,13 @@ void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points) {
   std::fstream gcode_file;  
   gcode_file.open(file_path, std::ios::in);  
   if (gcode_file.is_open()) {  
-      std::string line;  
+      std::string line;
+      float X = 0.0f;
+      float Y = 0.0f;
+      float Z = 0.0f;
+      float F = 0.0f;
       while (std::getline(gcode_file, line)) {  
-          if (line.rfind("G1", 0) == 0) {  
-              float X = 0.0f;  
-              float Y = 0.0f;  
-              float Z = 0.0f;
-              float F = 0.0f;
+          if (line.rfind("G1", 0) == 0) {
               int x_pos = line.find("X");  
               int y_pos = line.find("Y");  
               int z_pos = line.find("Z");
