@@ -113,25 +113,25 @@ public:
         }
 
         // Ruch w osi Y
-        if (y->position.y < target.y && abs((y->position.y - target.y)) >epsilon) {
+        if (y->position.y < target.z && abs((y->position.y - target.z)) >epsilon) {
             y->position.y += speed;
             x->position.y += speed;
         }
-        else if (abs((y->position.y - target.y)) > epsilon) {
+        else if (abs((y->position.y - target.z)) > epsilon) {
             y->position.y -= speed;
             x->position.y -= speed;
         }
 
         // Ruch w osi Z
-        if (z->position.z < target.z  && abs((z->position.z - target.z )) >epsilon) {
+        if (z->position.z < target.y  && abs((z->position.z - target.y )) >epsilon) {
             z->position.z += speed;
         }
-        else if(abs((z->position.z - target.z)) > epsilon) {
+        else if(abs((z->position.z - target.y)) > epsilon) {
             z->position.z -= speed;
         }
 
         //przejscie do nastepnego punktu
-		if (abs((x->position.x - target.x)) <= epsilon && abs((y->position.y - target.y)) <= epsilon && abs((z->position.z - target.z)) <= epsilon){
+		if (abs((x->position.x - target.x)) <= epsilon && abs((y->position.y - target.z)) <= epsilon && abs((z->position.z - target.y)) <= epsilon){
             index++;
 		}
     }
@@ -254,7 +254,7 @@ int main(void) {
         lightProj = rlGetMatrixProjection();
         // RYSOWANIE
 
-        DrawGrid(20, 10.0f); //
+        DrawGrid(20, 10.0f); 
 
         EndMode3D();
         EndTextureMode();
