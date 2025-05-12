@@ -68,11 +68,6 @@ public:
         return scaled_box;
     }
 
-    void UpdateMovement(float moveSpeed = 0.01f) {
-        if (IsKeyDown(KEY_Z)) position.y -= moveSpeed;
-        if (IsKeyDown(KEY_X)) position.y += moveSpeed;
-        //TraceLog(LOG_INFO, TextFormat("Pozycja modelu: X=%.2f, Y=%.2f, Z=%.2f", position.x, position.y, position.z));
-    }
 private:
     float scale = 0.1f;
     //wymiary w raylibie w f
@@ -107,8 +102,12 @@ public:
     ~TargetPoint() {}
 
     void MoveToPoint(modele* x, modele* y, modele* z) {
-        //troche trzeba poprawic
+        //korecja polozenia o polozenie poczatkowe
+        //troche trzeba poprawic tez zeby nie overshootowal to samo kryterium dac ale mi sie nie chce narazie
+        bool kolizja = CheckCollisionBoxes(x->GetTransformedBoundingBox(), z->GetTransformedBoundingBox());
+        TraceLog(LOG_INFO, TextFormat("Kolizja: %d", kolizja));
         speed = 0.01f ;
+
         if (start_pos == false) {
 			if (x->position.x > -8.5) {
 				x->position.x -= speed;
@@ -117,28 +116,23 @@ public:
                 x->position.x += speed;
             }
 
-			if (x->position.y > z->position.y) {
-				y->position.y -= speed;
+			if (x->position.y > z->position.y && kolizja == 0 ) {
 				x->position.y -= speed;
+				y->position.y -= speed;
 			}
-			else {
+			else if(kolizja ==0) {
 				y->position.y += speed;
 				x->position.y += speed;
 			}
 
             if (z->position.z > z_start) {
-                z->position.z -= speed;
+               z->position.z -= speed;
             }
             else {
-                z->position.z += speed;
+               z->position.z += speed;
             }
-            //TraceLog(LOG_INFO, TextFormat("--- Ruch do punktu %d ---", index));
-            //TraceLog(LOG_INFO, TextFormat("Pozycja dyszy (X): %.2f", x->position.x));
-            //TraceLog(LOG_INFO, TextFormat("Pozycja szyny (Y): %.2f", y->position.y));
-            //TraceLog(LOG_INFO, TextFormat("Pozycja stolu (Z): %.2f", z->position.z));
-
-            start_pos = (CheckCollisionBoxes(x->GetTransformedBoundingBox(), z->GetTransformedBoundingBox())) && (abs(z->position.z - z_start) <= 0.01f);
-			//TraceLog(LOG_INFO, TextFormat("START POS: %.2f", start_pos));
+            
+            start_pos = kolizja && (abs(z->position.z - z_start) <= 0.01f);
 
             if (start_pos == true) {
 				y_start = x->position.y;
@@ -147,7 +141,11 @@ public:
 
         else {
 
-            if (index == Target_positions.size()) return;
+            if (index >= Target_positions.size())
+            {
+                return;
+            }
+
 
 			if (srodek_dodany == false) { 
 				for (int i = 0; i < Target_positions.size(); i++) { //dodanie srodka do wektora
@@ -164,11 +162,11 @@ public:
 			epsilon = speed; //epsilon to kryterium jakosciowe, zeby nie overshootowal celu, mozna lowkey poprostu speed zamiast tego uzywac i mniej zmiennych bedzie
 
             //wyswietla w konsolce narazie mozna potem usunac
-            //TraceLog(LOG_INFO, TextFormat("--- Ruch do punktu %d ---", index));
-            //TraceLog(LOG_INFO, TextFormat("Cel: X=%.2f, Y=%.2f, Z=%.2f, F=%.2f", target.x, target.z, target.y, target.w));
-            //TraceLog(LOG_INFO, TextFormat("Pozycja dyszy (X): %.2f", x->position.x));
-            //TraceLog(LOG_INFO, TextFormat("Pozycja szyny (Y): %.2f", x->position.y));
-            //TraceLog(LOG_INFO, TextFormat("Pozycja stolu (Z): %.2f", z->position.z));
+           //TraceLog(LOG_INFO, TextFormat("--- Ruch do punktu %d ---", index));
+           //TraceLog(LOG_INFO, TextFormat("Cel: X=%.2f, Y=%.2f, Z=%.2f, F=%.2f", target.x, target.z, target.y, target.w));
+           //TraceLog(LOG_INFO, TextFormat("Pozycja dyszy (X): %.2f", x->position.x));
+           //TraceLog(LOG_INFO, TextFormat("Pozycja szyny (Y): %.2f", x->position.y));
+           //TraceLog(LOG_INFO, TextFormat("Pozycja stolu (Z): %.2f", z->position.z));
 
             // Ruch w osi X
             if (x->position.x <= target.x && abs((x->position.x - target.x)) >epsilon) {
@@ -204,9 +202,16 @@ public:
                 z->position.z = target.z;
                 index++;
             }
-            //dodaj usuwanie wektora po dojsciu do ostatniego punktu
         }
     }
+
+	void clear() {
+		//stan poczatkowy po wczytaniu nowego gcodea
+		Target_positions.clear();
+		index = 0;
+		start_pos = false;
+		srodek_dodany = false;
+	}
 private:
     float epsilon; //kryterium jakosciowe ahh
     int index = 0;
@@ -252,11 +257,8 @@ int main(void) {
     //ładowanie modeli + klasy do ruchu
     TargetPoint cel({});
     main_model drukarka("modele/main.obj", shadowShader ,{ 0.0f, 0.0f, 0.0f });
-    //modele table("modele/Y.obj", shadowShader, { 0.0f, 5.4f, -6.3f }); //Poruszaj tym stolem za pomoca Z i X a potem z konsoli odczytaj i podmien ostatnia wspolrzedna na taka jaka ma byc startowa platformy
-    //modele nozzle("modele/X.obj", shadowShader, { 0.0f, 31.4f, 0.0f });
-    //modele rail("modele/Z.obj", shadowShader, { 0.0f, 30.0f, 0.0f });
-    modele table("modele/Y.obj", shadowShader, { 0.0f, 5.4f, 0.0f });
-    modele nozzle("modele/X.obj", shadowShader, { 10.0f, 31.4f, 0.0f });
+    modele table("modele/Y.obj", shadowShader, { 0.0f, 5.4f, -6.3f }); //Poruszaj tym stolem za pomoca Z i X a potem z konsoli odczytaj i podmien ostatnia wspolrzedna na taka jaka ma byc startowa platformy
+    modele nozzle("modele/X.obj", shadowShader, { 0.0f, 31.4f, 0.0f });
     modele rail("modele/Z.obj", shadowShader, { 0.0f, 30.0f, 0.0f });
     RenderTexture2D shadowMap = LoadShadowmapRenderTexture(SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION);
     Camera3D lightCam = { 0 };
@@ -333,6 +335,7 @@ int main(void) {
 
         //wczytywanie z gcodea do vectora w klasie
       if (IsFileDropped()) {
+            cel.clear();
             char filePath[MAX_FILEPATH_SIZE] = { 0 };
             FilePathList droppedFiles = LoadDroppedFiles();
             TextCopy(filePath, droppedFiles.paths[0]);
@@ -344,12 +347,12 @@ int main(void) {
         // Draw the same exact things as we drew in the shadowmap!
         // RYSOWANIE
         DrawGrid(20, 10.0f); //
-       // nozzle.UpdateMovement();
         drukarka.Draw(); //
         table.Draw(); //
         nozzle.Draw(); //
         rail.Draw(); //
 
+        //ruch do celu
         cel.MoveToPoint(&nozzle, &rail, &table);
 
         EndMode3D();
