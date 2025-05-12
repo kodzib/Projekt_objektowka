@@ -19,7 +19,6 @@
 RenderTexture2D LoadShadowmapRenderTexture(int width, int height);
 void UnloadShadowmapRenderTexture(RenderTexture2D target);
 void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points);
-
 class main_model { //glowny model
 public:
     Model model1;
@@ -42,11 +41,12 @@ public:
     }
 };
 
-class modele : public main_model { //polimorfizm 
+class modele : public main_model { //polimorfizm
 public:
-
-    modele(const char* modelPath, Shader shader, Vector3 pos = { 0.0f, 0.0f, 0.0f }) : main_model(modelPath,shader, pos) {
-		//Nic nie potrzebne, bo używamy z klasy bazowej
+    BoundingBox box;
+    modele(const char* modelPath, Shader shader, Vector3 pos = { 0.0f, 0.0f, 0.0f }) : main_model(modelPath, shader, pos) {
+        // Teraz model1 powinien być zainicjalizowany (zakładając, że konstruktor main_model to robi)
+            box = GetMeshBoundingBox(model1.meshes[0]);
     }
 
     ~modele() {
@@ -55,41 +55,48 @@ public:
 
     void Draw() override {
         DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, RED);
+        DrawBoundingBox(GetTransformedBoundingBox(), BLUE); 
+    }
+
+    BoundingBox GetTransformedBoundingBox() const {
+        // skalowanie boxa i zeby wyswietlal sie na modelu
+        BoundingBox scaled_box = box;
+
+        scaled_box.min = Vector3Scale(scaled_box.min, scale)+ position;
+        scaled_box.max = Vector3Scale(scaled_box.max, scale)+ position;
+
+        return scaled_box;
     }
 
     void UpdateMovement(float moveSpeed = 0.01f) {
-        if (IsKeyDown(KEY_Z)) position.z -= moveSpeed;
-        if (IsKeyDown(KEY_X)) position.z += moveSpeed;
-        TraceLog(LOG_INFO, TextFormat("Pozycja modelu: X=%.2f, Y=%.2f, Z=%.2f", position.x, position.y, position.z));
+        if (IsKeyDown(KEY_Z)) position.y -= moveSpeed;
+        if (IsKeyDown(KEY_X)) position.y += moveSpeed;
+        //TraceLog(LOG_INFO, TextFormat("Pozycja modelu: X=%.2f, Y=%.2f, Z=%.2f", position.x, position.y, position.z));
     }
-    //mozna potem usunac 
-    void PrintModelSize() {
-        BoundingBox box = GetMeshBoundingBox(model1.meshes[0]);
+private:
+    float scale = 0.1f;
+    //wymiary w raylibie w f
+    // Model "table" ma rozmiary: moze do skalowania sie przyda
+    /*
+    SzerokoťŠ(X) : 23.4998
+        WysokoťŠ(Y) : 4.6712
+        G│ŕbokoťŠ(Z) : 23.4998
 
-        for (int i = 1; i < model1.meshCount; i++) {
-            BoundingBox meshBox = GetMeshBoundingBox(model1.meshes[i]);
-            box.min = Vector3Min(box.min, meshBox.min);
-            box.max = Vector3Max(box.max, meshBox.max);
-        }
+        Model "nozzle" ma rozmiary :
+    SzerokoťŠ(X) : 7.3934
+        WysokoťŠ(Y) : 6.64
+        G│ŕbokoťŠ(Z) : 7.22
 
-        Vector3 size = {
-            box.max.x - box.min.x,
-            box.max.y - box.min.y,
-            box.max.z - box.min.z
-        };
-
-        std::cout << "Model \"" << "\" ma rozmiary:" << std::endl;
-        std::cout << "  Szerokość (X): " << size.x/10 << std::endl;
-        std::cout << "  Wysokość  (Y): " << size.y/10 << std::endl;
-        std::cout << "  Głębokość (Z): " << size.z/10 << std::endl;
-        std::cout << std::endl;
-    }
+        Model "rail" ma rozmiary :
+    SzerokoťŠ(X) : 41.9902
+        WysokoťŠ(Y) : 11.2567
+        G│ŕbokoťŠ(Z) : 13.2322
+    */
 };
 
 class TargetPoint {
 public:
     std::vector<Vector4> Target_positions;  
-    float speed;
 
     TargetPoint(std::vector<Vector4> pos) {
 		Target_positions = pos;
@@ -100,57 +107,115 @@ public:
     ~TargetPoint() {}
 
     void MoveToPoint(modele* x, modele* y, modele* z) {
+        //troche trzeba poprawic
+        speed = 0.01f ;
+        if (start_pos == false) {
+			if (x->position.x > -8.5) {
+				x->position.x -= speed;
+            }
+            else {
+                x->position.x += speed;
+            }
 
-        if (index == Target_positions.size()) return;  
+			if (x->position.y > z->position.y) {
+				y->position.y -= speed;
+				x->position.y -= speed;
+			}
+			else {
+				y->position.y += speed;
+				x->position.y += speed;
+			}
 
-        Vector4 target = Target_positions[index]/10; // tu jakies skalowanie, narazie przez 10 podzielilem bo tak
-		speed = target.w/60 * GetFrameTime(); //prędkość ruchu, wczytana z gcodea
-        epsilon = speed;
-        //wyswietla w konsolce narazie mozna potem usunac
-        TraceLog(LOG_INFO, TextFormat("--- Ruch do punktu %d ---", index));
-        TraceLog(LOG_INFO, TextFormat("Cel: X=%.2f, Y=%.2f, Z=%.2f, F=%.2f", target.x, target.y, target.z, target.w));
-        TraceLog(LOG_INFO, TextFormat("Pozycja dyszy (X): %.2f", x->position.x));
-        TraceLog(LOG_INFO, TextFormat("Pozycja szyny (Y): %.2f", y->position.y));
-        TraceLog(LOG_INFO, TextFormat("Pozycja stolu (Z): %.2f", z->position.z));
+            if (z->position.z > z_start) {
+                z->position.z -= speed;
+            }
+            else {
+                z->position.z += speed;
+            }
+            //TraceLog(LOG_INFO, TextFormat("--- Ruch do punktu %d ---", index));
+            //TraceLog(LOG_INFO, TextFormat("Pozycja dyszy (X): %.2f", x->position.x));
+            //TraceLog(LOG_INFO, TextFormat("Pozycja szyny (Y): %.2f", y->position.y));
+            //TraceLog(LOG_INFO, TextFormat("Pozycja stolu (Z): %.2f", z->position.z));
 
-        // Ruch w osi X
-        if (x->position.x < target.x && abs((x->position.x - target.x)) >epsilon) {
-            x->position.x += speed;
-        }
-        else if (abs((x->position.x - target.x)) > epsilon){
-            x->position.x -= speed;
-        }
+            start_pos = (CheckCollisionBoxes(x->GetTransformedBoundingBox(), z->GetTransformedBoundingBox())) && (abs(z->position.z - z_start) <= 0.01f);
+			//TraceLog(LOG_INFO, TextFormat("START POS: %.2f", start_pos));
 
-        // Ruch w osi Y
-        if (y->position.y < target.z && abs((y->position.y - target.z)) >epsilon) {
-            y->position.y += speed;
-            x->position.y += speed;
-        }
-        else if (abs((y->position.y - target.z)) > epsilon) {
-            y->position.y -= speed;
-            x->position.y -= speed;
+            if (start_pos == true) {
+				y_start = x->position.y;
+            }
         }
 
-        // Ruch w osi Z
-        if (z->position.z < target.y  && abs((z->position.z - target.y )) >epsilon) {
-            z->position.z += speed;
-        }
-        else if(abs((z->position.z - target.y)) > epsilon) {
-            z->position.z -= speed;
-        }
+        else {
 
-        //przejscie do nastepnego punktu
-		if (abs((x->position.x - target.x)) <= epsilon && abs((y->position.y - target.z)) <= epsilon && abs((z->position.z - target.y)) <= epsilon){
-            x->position.x = target.x;
-            y->position.y = target.z;
-			x->position.y = target.z; 
-            z->position.z = target.y;
-            index++;
-		}
+            if (index == Target_positions.size()) return;
+
+			if (srodek_dodany == false) { 
+				for (int i = 0; i < Target_positions.size(); i++) { //dodanie srodka do wektora
+                					Target_positions[i].x = Target_positions[i].x / 10 + x_start;
+                                    Target_positions[i].z = Target_positions[i].z / 10 + y_start;
+                                    Target_positions[i].y = Target_positions[i].y / 10 + z_start;
+									Target_positions[i].w = Target_positions[i].w / 10;
+                }
+                srodek_dodany = true;
+            }
+
+            Vector4 target = Target_positions[index]; // tu jakies skalowanie, narazie przez 10 podzielilem bo tak
+            speed = target.w / 60 * GetFrameTime(); //prędkość ruchu na klatke animacji , wczytana z gcodea
+			epsilon = speed; //epsilon to kryterium jakosciowe, zeby nie overshootowal celu, mozna lowkey poprostu speed zamiast tego uzywac i mniej zmiennych bedzie
+
+            //wyswietla w konsolce narazie mozna potem usunac
+            //TraceLog(LOG_INFO, TextFormat("--- Ruch do punktu %d ---", index));
+            //TraceLog(LOG_INFO, TextFormat("Cel: X=%.2f, Y=%.2f, Z=%.2f, F=%.2f", target.x, target.z, target.y, target.w));
+            //TraceLog(LOG_INFO, TextFormat("Pozycja dyszy (X): %.2f", x->position.x));
+            //TraceLog(LOG_INFO, TextFormat("Pozycja szyny (Y): %.2f", x->position.y));
+            //TraceLog(LOG_INFO, TextFormat("Pozycja stolu (Z): %.2f", z->position.z));
+
+            // Ruch w osi X
+            if (x->position.x <= target.x && abs((x->position.x - target.x)) >epsilon) {
+                x->position.x += speed;
+            }
+            else if (abs((x->position.x - target.x)) > epsilon) {
+                x->position.x -= speed;
+            }
+
+            // Ruch w osi Y
+            if (x->position.y <= target.z && abs((x->position.y - target.z)) >epsilon) { //trzeba zobaczyc czy x czy y
+                y->position.y += speed;
+                x->position.y += speed;
+            }
+            else if (abs((x->position.y - target.z)) > epsilon) {
+                y->position.y -= speed;
+                x->position.y -= speed;
+            }
+
+            // Ruch w osi Z
+            if (z->position.z <= target.y && abs((z->position.z - target.y)) >epsilon) {
+                z->position.z += speed;
+            }
+            else if (abs((z->position.z - target.y)) > epsilon) {
+                z->position.z -= speed;
+            }
+
+            //przejscie do nastepnego punktu
+            if (abs((x->position.x - target.x)) <= epsilon && abs((x->position.y - target.z)) <= epsilon && abs((z->position.z - target.y)) <= epsilon) {
+                x->position.x = target.x;
+                y->position.y = target.z;
+                x->position.y = target.z;
+                z->position.z = target.y;
+                index++;
+            }
+            //dodaj usuwanie wektora po dojsciu do ostatniego punktu
+        }
     }
 private:
     float epsilon; //kryterium jakosciowe ahh
     int index = 0;
+    bool start_pos = 0;
+    bool srodek_dodany = 0;
+    float speed ;
+    float y_start = 0.0f;
+    float z_start = -6.3f;
+    float x_start = -8.9f;
 };
 
 int main(void) {
@@ -187,31 +252,12 @@ int main(void) {
     //ładowanie modeli + klasy do ruchu
     TargetPoint cel({});
     main_model drukarka("modele/main.obj", shadowShader ,{ 0.0f, 0.0f, 0.0f });
-    modele table("modele/Y.obj", shadowShader, { 0.0f, 5.4f, -11.95f }); //Poruszaj tym stolem za pomoca Z i X a potem z konsoli odczytaj i podmien ostatnia wspolrzedna na taka jaka ma byc startowa platformy
-    modele nozzle("modele/X.obj", shadowShader, { 0.0f, 31.4f, 0.0f });
+    //modele table("modele/Y.obj", shadowShader, { 0.0f, 5.4f, -6.3f }); //Poruszaj tym stolem za pomoca Z i X a potem z konsoli odczytaj i podmien ostatnia wspolrzedna na taka jaka ma byc startowa platformy
+    //modele nozzle("modele/X.obj", shadowShader, { 0.0f, 31.4f, 0.0f });
+    //modele rail("modele/Z.obj", shadowShader, { 0.0f, 30.0f, 0.0f });
+    modele table("modele/Y.obj", shadowShader, { 0.0f, 5.4f, 0.0f });
+    modele nozzle("modele/X.obj", shadowShader, { 10.0f, 31.4f, 0.0f });
     modele rail("modele/Z.obj", shadowShader, { 0.0f, 30.0f, 0.0f });
-
-    table.PrintModelSize();
-    nozzle.PrintModelSize();
-    rail.PrintModelSize();
-    //wymiary w raylibie w f
-    // Model "table" ma rozmiary: moze do skalowania sie przyda
-    /*
-    SzerokoťŠ(X) : 23.4998
-        WysokoťŠ(Y) : 4.6712
-        G│ŕbokoťŠ(Z) : 23.4998
-
-        Model "nozzle" ma rozmiary :
-    SzerokoťŠ(X) : 7.3934
-        WysokoťŠ(Y) : 6.64
-        G│ŕbokoťŠ(Z) : 7.22
-
-        Model "rail" ma rozmiary :
-    SzerokoťŠ(X) : 41.9902
-        WysokoťŠ(Y) : 11.2567
-        G│ŕbokoťŠ(Z) : 13.2322
-    */
-
     RenderTexture2D shadowMap = LoadShadowmapRenderTexture(SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION);
     Camera3D lightCam = { 0 };
     lightCam.position = Vector3Scale(lightDir, -15.0f);
@@ -298,7 +344,7 @@ int main(void) {
         // Draw the same exact things as we drew in the shadowmap!
         // RYSOWANIE
         DrawGrid(20, 10.0f); //
-        table.UpdateMovement();
+       // nozzle.UpdateMovement();
         drukarka.Draw(); //
         table.Draw(); //
         nozzle.Draw(); //
