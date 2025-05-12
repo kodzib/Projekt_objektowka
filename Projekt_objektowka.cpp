@@ -152,8 +152,8 @@ public:
 			if (srodek_dodany == false) { 
 				for (int i = 0; i < Target_positions.size(); i++) { //dodanie srodka do wektora
                 					Target_positions[i].x = Target_positions[i].x / 10 + x_start;
-                                    Target_positions[i].z = Target_positions[i].z / 10 + y_start;
-                                    Target_positions[i].y = Target_positions[i].y / 10 + z_start;
+                                    Target_positions[i].y = Target_positions[i].y / 10 + y_start;
+                                    Target_positions[i].z = Target_positions[i].z / 10 + z_start;
 									Target_positions[i].w = Target_positions[i].w / 10;
                 }
                 srodek_dodany = true;
@@ -179,29 +179,29 @@ public:
             }
 
             // Ruch w osi Y
-            if (x->position.y <= target.z && abs((x->position.y - target.z)) >epsilon) { //trzeba zobaczyc czy x czy y
+            if (x->position.y <= target.y && abs((x->position.y - target.y)) >epsilon) { //trzeba zobaczyc czy x czy y
                 y->position.y += speed;
                 x->position.y += speed;
             }
-            else if (abs((x->position.y - target.z)) > epsilon) {
+            else if (abs((x->position.y - target.y)) > epsilon) {
                 y->position.y -= speed;
                 x->position.y -= speed;
             }
 
             // Ruch w osi Z
-            if (z->position.z <= target.y && abs((z->position.z - target.y)) >epsilon) {
+            if (z->position.z <= target.z && abs((z->position.z - target.z)) >epsilon) {
                 z->position.z += speed;
             }
-            else if (abs((z->position.z - target.y)) > epsilon) {
+            else if (abs((z->position.z - target.z)) > epsilon) {
                 z->position.z -= speed;
             }
 
             //przejscie do nastepnego punktu
-            if (abs((x->position.x - target.x)) <= epsilon && abs((x->position.y - target.z)) <= epsilon && abs((z->position.z - target.y)) <= epsilon) {
+            if (abs((x->position.x - target.x)) <= epsilon && abs((x->position.y - target.y)) <= epsilon && abs((z->position.z - target.z)) <= epsilon) {
                 x->position.x = target.x;
-                y->position.y = target.z;
-                x->position.y = target.z;
-                z->position.z = target.y;
+                y->position.y = target.y;
+                x->position.y = target.y;
+                z->position.z = target.z;
                 index++;
             }
             //dodaj usuwanie wektora po dojsciu do ostatniego punktu
@@ -446,7 +446,7 @@ void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points) {
                   space_pos = line.find(" ", f_pos);
                   F = std::stof(line.substr(f_pos + 1, space_pos - f_pos - 1));
               }
-              points.push_back({X, Y, Z, F});  
+              points.push_back({X, Z, Y, F});  
           }  
       }  
       gcode_file.close();  
