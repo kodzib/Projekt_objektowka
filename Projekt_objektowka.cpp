@@ -109,7 +109,7 @@ public:
         speed = 0.01f ;
 
         if (start_pos == false) {
-			if (x->position.x > -8.5) {
+			if (x->position.x > x_start) {
 				x->position.x -= speed;
             }
             else {
@@ -219,8 +219,8 @@ private:
     bool srodek_dodany = 0;
     float speed ;
     float y_start = 0.0f;
-    float z_start = -6.3f;
-    float x_start = -8.9f;
+    float z_start = -11.7f;
+    float x_start = -12.3f;
 };
 
 int main(void) {
@@ -257,8 +257,8 @@ int main(void) {
     //ładowanie modeli + klasy do ruchu
     TargetPoint cel({});
     main_model drukarka("modele/main.obj", shadowShader ,{ 0.0f, 0.0f, 0.0f });
-    modele table("modele/Y.obj", shadowShader, { 0.0f, 5.4f, -6.3f }); //Poruszaj tym stolem za pomoca Z i X a potem z konsoli odczytaj i podmien ostatnia wspolrzedna na taka jaka ma byc startowa platformy
-    modele nozzle("modele/X.obj", shadowShader, { 0.0f, 31.4f, 0.0f });
+    modele table("modele/Y.obj", shadowShader, { 0.0f, 5.55f, -6.3f }); //Poruszaj tym stolem za pomoca Z i X a potem z konsoli odczytaj i podmien ostatnia wspolrzedna na taka jaka ma byc startowa platformy
+    modele nozzle("modele/X.obj", shadowShader, { 0.0f, 31.33f, 0.0f });
     modele rail("modele/Z.obj", shadowShader, { 0.0f, 30.0f, 0.0f });
     RenderTexture2D shadowMap = LoadShadowmapRenderTexture(SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION);
     Camera3D lightCam = { 0 };
@@ -274,7 +274,6 @@ int main(void) {
     // Main game loop
     while (!WindowShouldClose()) {
 		std::vector <Vector4> points;
-
 
         float dt = GetFrameTime();
 
@@ -415,22 +414,22 @@ void UnloadShadowmapRenderTexture(RenderTexture2D target) {
 }
 
 void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points) {  
-  std::fstream gcode_file;  
+  std::fstream gcode_file;  //otwieranie pliku
   gcode_file.open(file_path, std::ios::in);  
   if (gcode_file.is_open()) {  
       std::string line;
-      float X = 0.0f;
+      float X = 0.0f; //nasze wartości pobierane z pliku, są tutaj, żeby nie były resetowane jeśli wartości się nie zmieniają pomiędzy linijkami
       float Y = 0.0f;
       float Z = 0.0f;
       float F = 0.0f;
-      while (std::getline(gcode_file, line)) {  
+	  while (std::getline(gcode_file, line)) { //dopuki nie znajdzie konca pliku
           if (line.rfind("G1", 0) == 0) {
-              int x_pos = line.find("X");  
+			  int x_pos = line.find("X");  //szukamy pozycji X, Y, Z i F w linijce
               int y_pos = line.find("Y");  
               int z_pos = line.find("Z");
 			  int f_pos = line.find("F");
               int space_pos = 0;  
-              if (x_pos > 0) {  
+			  if (x_pos > 0) {  //jeśli jest to znajdujemy spację i do tej pozycji pobieramy wartość
                   space_pos = line.find(" ", x_pos);  
                   X = std::stof(line.substr(x_pos + 1, space_pos - x_pos - 1));  
               }  
@@ -449,12 +448,13 @@ void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points) {
                   space_pos = line.find(" ", f_pos);
                   F = std::stof(line.substr(f_pos + 1, space_pos - f_pos - 1));
               }
-              points.push_back({X, Z, Y, F});  
+			  points.push_back({ X, Z, Y, F });  //dodajemy do wektora punkty
           }  
       }  
       gcode_file.close();  
-  } else {  
+  }
+  else {  //jeśli nie można otworzyć pliku
       std::cout << "Nie można otworzyć pliku gcode.txt" << std::endl;  
   }
-  gcode_file.close();
+  gcode_file.close(); //zamykamy plik jak dobre chłopaczki :)
 }
