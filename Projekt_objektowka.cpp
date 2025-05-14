@@ -34,8 +34,8 @@ public:
     }
 
     ~main_model() {
-        UnloadModel(model1);
 		UnloadTexture(model1.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture); //zwolnienie tekstury
+        UnloadModel(model1);
     }
 
     virtual void Draw() {
@@ -72,23 +72,6 @@ public:
 
 private:
     float scale = 0.1f;
-    //wymiary w raylibie w f
-    // Model "table" ma rozmiary: moze do skalowania sie przyda
-    /*
-    SzerokoťŠ(X) : 23.4998
-        WysokoťŠ(Y) : 4.6712
-        G│ŕbokoťŠ(Z) : 23.4998
-
-        Model "nozzle" ma rozmiary :
-    SzerokoťŠ(X) : 7.3934
-        WysokoťŠ(Y) : 6.64
-        G│ŕbokoťŠ(Z) : 7.22
-
-        Model "rail" ma rozmiary :
-    SzerokoťŠ(X) : 41.9902
-        WysokoťŠ(Y) : 11.2567
-        G│ŕbokoťŠ(Z) : 13.2322
-    */
 };
 
 class TargetPoint {
@@ -107,7 +90,7 @@ public:
         //korecja polozenia o polozenie poczatkowe
         //troche trzeba poprawic tez zeby nie overshootowal to samo kryterium dac ale mi sie nie chce narazie
         bool kolizja = CheckCollisionBoxes(x->GetTransformedBoundingBox(), z->GetTransformedBoundingBox());
-        TraceLog(LOG_INFO, TextFormat("Kolizja: %d", kolizja));
+
         speed = 0.01f ;
 
         if (start_pos == false) {
@@ -148,9 +131,9 @@ public:
                 return;
             }
 
-
+            //dodanie srodka do wektora + skalowanie
 			if (srodek_dodany == false) { 
-				for (int i = 0; i < Target_positions.size(); i++) { //dodanie srodka do wektora
+				for (int i = 0; i < Target_positions.size(); i++) { 
                 					Target_positions[i].x = Target_positions[i].x / 10 + x_start;
                                     Target_positions[i].y = Target_positions[i].y / 10 + y_start;
                                     Target_positions[i].z = Target_positions[i].z / 10 + z_start;
@@ -159,16 +142,9 @@ public:
                 srodek_dodany = true;
             }
 
-            Vector4 target = Target_positions[index]; // tu jakies skalowanie, narazie przez 10 podzielilem bo tak
+            Vector4 target = Target_positions[index]; 
             speed = target.w / 60 * GetFrameTime(); //prędkość ruchu na klatke animacji , wczytana z gcodea
 			epsilon = speed; //epsilon to kryterium jakosciowe, zeby nie overshootowal celu, mozna lowkey poprostu speed zamiast tego uzywac i mniej zmiennych bedzie
-
-            //wyswietla w konsolce narazie mozna potem usunac
-           //TraceLog(LOG_INFO, TextFormat("--- Ruch do punktu %d ---", index));
-           //TraceLog(LOG_INFO, TextFormat("Cel: X=%.2f, Y=%.2f, Z=%.2f, F=%.2f", target.x, target.z, target.y, target.w));
-           //TraceLog(LOG_INFO, TextFormat("Pozycja dyszy (X): %.2f", x->position.x));
-           //TraceLog(LOG_INFO, TextFormat("Pozycja szyny (Y): %.2f", x->position.y));
-           //TraceLog(LOG_INFO, TextFormat("Pozycja stolu (Z): %.2f", z->position.z));
 
             // Ruch w osi X
             if (x->position.x <= target.x && abs((x->position.x - target.x)) >epsilon) {
@@ -179,7 +155,7 @@ public:
             }
 
             // Ruch w osi Y
-            if (x->position.y <= target.y && abs((x->position.y - target.y)) >epsilon) { //trzeba zobaczyc czy x czy y
+            if (x->position.y <= target.y && abs((x->position.y - target.y)) >epsilon) { 
                 y->position.y += speed;
                 x->position.y += speed;
             }
@@ -259,7 +235,7 @@ int main(void) {
     //ładowanie modeli + klasy do ruchu
     TargetPoint cel({});
     main_model drukarka("modele/main.obj", "modele/main.png", shadowShader, {0.0f, 0.0f, 0.0f});
-    modele table("modele/Y.obj", "modele/Y.png", shadowShader, { 0.0f, 5.55f, -6.3f }); //Poruszaj tym stolem za pomoca Z i X a potem z konsoli odczytaj i podmien ostatnia wspolrzedna na taka jaka ma byc startowa platformy
+    modele table("modele/Y.obj", "modele/Y.png", shadowShader, { 0.0f, 5.55f, -6.3f });
     modele nozzle("modele/X.obj", "modele/X.png", shadowShader, { 0.0f, 31.33f, 0.0f });
     modele rail("modele/Z.obj", "modele/Z.png", shadowShader, { 0.0f, 30.0f, 0.0f });
     RenderTexture2D shadowMap = LoadShadowmapRenderTexture(SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION);
