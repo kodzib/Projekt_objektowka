@@ -24,9 +24,10 @@ public:
     Model model1;
     Vector3 position;
 
-    main_model(const char* modelPath,Shader shader, Vector3 pos = { 0.0f, 0.0f, 0.0f })  {
+    main_model(const char* modelPath, const char* texturePath,Shader shader, Vector3 pos = { 0.0f, 0.0f, 0.0f })  {
         position = pos;
         model1 = LoadModel(modelPath);
+		model1.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = LoadTexture(texturePath); //dodanie tekstury
         for (int i = 0; i < model1.materialCount; i++) { //low key trzeba ogarnąć o co z tych chodzi, 
             model1.materials[i].shader = shader;
         }
@@ -34,17 +35,18 @@ public:
 
     ~main_model() {
         UnloadModel(model1);
+		UnloadTexture(model1.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture); //zwolnienie tekstury
     }
 
     virtual void Draw() {
-        DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, DARKBLUE);
+        DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, WHITE);
     }
 };
 
 class modele : public main_model { //polimorfizm
 public:
     BoundingBox box;
-    modele(const char* modelPath, Shader shader, Vector3 pos = { 0.0f, 0.0f, 0.0f }) : main_model(modelPath, shader, pos) {
+    modele(const char* modelPath, const char* texturePath, Shader shader, Vector3 pos = { 0.0f, 0.0f, 0.0f }) : main_model(modelPath, texturePath, shader, pos) {
         // Teraz model1 powinien być zainicjalizowany (zakładając, że konstruktor main_model to robi)
             box = GetMeshBoundingBox(model1.meshes[0]);
     }
@@ -54,7 +56,7 @@ public:
     }
 
     void Draw() override {
-        DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, RED);
+        DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, WHITE);
         DrawBoundingBox(GetTransformedBoundingBox(), BLUE); 
     }
 
@@ -256,10 +258,10 @@ int main(void) {
 
     //ładowanie modeli + klasy do ruchu
     TargetPoint cel({});
-    main_model drukarka("modele/main.obj", shadowShader ,{ 0.0f, 0.0f, 0.0f });
-    modele table("modele/Y.obj", shadowShader, { 0.0f, 5.55f, -6.3f }); //Poruszaj tym stolem za pomoca Z i X a potem z konsoli odczytaj i podmien ostatnia wspolrzedna na taka jaka ma byc startowa platformy
-    modele nozzle("modele/X.obj", shadowShader, { 0.0f, 31.33f, 0.0f });
-    modele rail("modele/Z.obj", shadowShader, { 0.0f, 30.0f, 0.0f });
+    main_model drukarka("modele/main.obj", "modele/main.png", shadowShader, {0.0f, 0.0f, 0.0f});
+    modele table("modele/Y.obj", "modele/Y.png", shadowShader, { 0.0f, 5.55f, -6.3f }); //Poruszaj tym stolem za pomoca Z i X a potem z konsoli odczytaj i podmien ostatnia wspolrzedna na taka jaka ma byc startowa platformy
+    modele nozzle("modele/X.obj", "modele/X.png", shadowShader, { 0.0f, 31.33f, 0.0f });
+    modele rail("modele/Z.obj", "modele/Z.png", shadowShader, { 0.0f, 30.0f, 0.0f });
     RenderTexture2D shadowMap = LoadShadowmapRenderTexture(SHADOWMAP_RESOLUTION, SHADOWMAP_RESOLUTION);
     Camera3D lightCam = { 0 };
     lightCam.position = Vector3Scale(lightDir, -15.0f);
