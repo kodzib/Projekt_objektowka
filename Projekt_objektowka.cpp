@@ -80,24 +80,22 @@ public:
 
     TargetPoint(std::vector<Vector4> pos) {
 		Target_positions = pos;
-        epsilon = 0.0f;
         speed = 0.0f;
+        kolizja = false;
     }
 
     ~TargetPoint() {}
 
-    void MoveToPoint(modele* x, modele* y, modele* z) {
+    void MoveToPoint(modele* x, modele* y, modele* z, float dt) {
         //korecja polozenia o polozenie poczatkowe
-        //troche trzeba poprawic tez zeby nie overshootowal to samo kryterium dac ale mi sie nie chce narazie
-        bool kolizja = CheckCollisionBoxes(x->GetTransformedBoundingBox(), z->GetTransformedBoundingBox());
+        kolizja = CheckCollisionBoxes(x->GetTransformedBoundingBox(), z->GetTransformedBoundingBox());
 
         speed = 0.01f ;
-
-        if (start_pos == false) {
-			if (x->position.x > x_start) {
+        if (!start_pos) {
+			if (x->position.x > x_start && abs((x->position.x - x_start)) > speed) {
 				x->position.x -= speed;
             }
-            else {
+            else if(abs((x->position.x - x_start)) > speed){
                 x->position.x += speed;
             }
 
@@ -110,14 +108,14 @@ public:
 				x->position.y += speed;
 			}
 
-            if (z->position.z > z_start) {
+            if (z->position.z > z_start && abs((z->position.z - z_start)) > speed) {
                z->position.z -= speed;
             }
-            else {
+            else if(abs((z->position.z - z_start)) > speed){
                z->position.z += speed;
             }
             
-            start_pos = kolizja && (abs(z->position.z - z_start) <= 0.01f);
+            start_pos = kolizja && (abs(z->position.z - z_start) <= speed);
 
             if (start_pos == true) {
 				y_start = x->position.y;
@@ -143,37 +141,36 @@ public:
             }
 
             Vector4 target = Target_positions[index]; 
-            speed = target.w / 60 * GetFrameTime(); //prędkość ruchu na klatke animacji , wczytana z gcodea
-			epsilon = speed; //epsilon to kryterium jakosciowe, zeby nie overshootowal celu, mozna lowkey poprostu speed zamiast tego uzywac i mniej zmiennych bedzie
+            speed = target.w / 60 * dt; //prędkość ruchu na klatke animacji , wczytana z gcodea
 
             // Ruch w osi X
-            if (x->position.x <= target.x && abs((x->position.x - target.x)) >epsilon) {
+            if (x->position.x <= target.x && abs((x->position.x - target.x)) > speed) {
                 x->position.x += speed;
             }
-            else if (abs((x->position.x - target.x)) > epsilon) {
+            else if (abs((x->position.x - target.x)) > speed) {
                 x->position.x -= speed;
             }
 
             // Ruch w osi Y
-            if (x->position.y <= target.y && abs((x->position.y - target.y)) >epsilon) { 
+            if (x->position.y <= target.y && abs((x->position.y - target.y)) > speed) {
                 y->position.y += speed;
                 x->position.y += speed;
             }
-            else if (abs((x->position.y - target.y)) > epsilon) {
+            else if (abs((x->position.y - target.y)) > speed) {
                 y->position.y -= speed;
                 x->position.y -= speed;
             }
 
             // Ruch w osi Z
-            if (z->position.z <= target.z && abs((z->position.z - target.z)) >epsilon) {
+            if (z->position.z <= target.z && abs((z->position.z - target.z)) > speed) {
                 z->position.z += speed;
             }
-            else if (abs((z->position.z - target.z)) > epsilon) {
+            else if (abs((z->position.z - target.z)) > speed) {
                 z->position.z -= speed;
             }
 
             //przejscie do nastepnego punktu
-            if (abs((x->position.x - target.x)) <= epsilon && abs((x->position.y - target.y)) <= epsilon && abs((z->position.z - target.z)) <= epsilon) {
+            if (abs((x->position.x - target.x)) <= speed && abs((x->position.y - target.y)) <= speed && abs((z->position.z - target.z)) <= speed) {
                 x->position.x = target.x;
                 y->position.y = target.y;
                 x->position.y = target.y;
@@ -191,14 +188,14 @@ public:
 		srodek_dodany = false;
 	}
 private:
-    float epsilon; //kryterium jakosciowe ahh
+    bool kolizja = false;
     int index = 0;
     bool start_pos = 0;
     bool srodek_dodany = 0;
     float speed ;
     float y_start = 0.0f;
-    float z_start = -11.7f;
-    float x_start = -12.3f;
+    static constexpr float z_start = -11.7f;
+    static constexpr float x_start = -12.3f;
 };
 
 int main(void) {
@@ -330,7 +327,7 @@ int main(void) {
         rail.Draw(); //
 
         //ruch do celu
-        cel.MoveToPoint(&nozzle, &rail, &table);
+        cel.MoveToPoint(&nozzle, &rail, &table, dt);
 
         EndMode3D();
 
