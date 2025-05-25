@@ -89,7 +89,6 @@ public:
     void MoveToPoint(modele* x, modele* y, modele* z, float dt) {
         //korecja polozenia o polozenie poczatkowe
         kolizja = CheckCollisionBoxes(x->GetTransformedBoundingBox(), z->GetTransformedBoundingBox());
-
         speed = 0.01f ;
         if (!start_pos) {
 			if (x->position.x > x_start && abs((x->position.x - x_start)) > speed) {
@@ -172,7 +171,7 @@ public:
             //przejscie do nastepnego punktu
             if (abs((x->position.x - target.x)) <= speed && abs((x->position.y - target.y)) <= speed && abs((z->position.z - target.z)) <= speed) {
                 x->position.x = target.x;
-                y->position.y = target.y;
+               // y->position.y = target.y;
                 x->position.y = target.y;
                 z->position.z = target.z;
                 index++;
