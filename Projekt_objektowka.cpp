@@ -118,6 +118,7 @@ public:
 
             if (start_pos == true) {
 				y_start = x->position.y;
+                offsetY = y->position.y - x->position.y;
             }
         }
 
@@ -171,7 +172,7 @@ public:
             //przejscie do nastepnego punktu
             if (abs((x->position.x - target.x)) <= speed && abs((x->position.y - target.y)) <= speed && abs((z->position.z - target.z)) <= speed) {
                 x->position.x = target.x;
-               // y->position.y = target.y;
+                y->position.y = target.y + offsetY;
                 x->position.y = target.y;
                 z->position.z = target.z;
                 index++;
@@ -189,6 +190,7 @@ public:
 private:
     bool kolizja = false;
     int index = 0;
+    float offsetY = 0;
     bool start_pos = 0;
     bool srodek_dodany = 0;
     float speed ;
