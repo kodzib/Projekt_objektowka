@@ -18,7 +18,7 @@
 
 RenderTexture2D LoadShadowmapRenderTexture(int width, int height);
 void UnloadShadowmapRenderTexture(RenderTexture2D target);
-void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points);
+void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points, std::vector<bool>& Extrude);
 class main_model { //glowny model
 public:
     Model model1;
@@ -199,6 +199,16 @@ private:
     static constexpr float x_start = -12.3f;
 };
 
+class Extruder {
+public:
+	std::vector<bool> Extrude;
+    //tutaj mozna dodac jakas generacje mesha w tej klasie ze jezeli Extrude == 1 to rysuje a jezeli 0 to nie
+
+	void clear() {
+		Extrude.clear();
+	}
+};
+
 int main(void) {
 
     const int screenWidth = 1600;
@@ -232,6 +242,7 @@ int main(void) {
 
     //ładowanie modeli + klasy do ruchu
     TargetPoint cel({});
+	Extruder extruder;
     main_model drukarka("modele/main.obj", "modele/main.png", shadowShader, {0.0f, 0.0f, 0.0f});
     modele table("modele/Y.obj", "modele/Y.png", shadowShader, { 0.0f, 5.55f, -6.3f });
     modele nozzle("modele/X.obj", "modele/X.png", shadowShader, { 0.0f, 31.33f, 0.0f });
@@ -315,7 +326,7 @@ int main(void) {
             FilePathList droppedFiles = LoadDroppedFiles();
             TextCopy(filePath, droppedFiles.paths[0]);
             std::cout << filePath << std::endl;
-            GcodeAnalizer(std::string(filePath), cel.Target_positions);
+            GcodeAnalizer(std::string(filePath), cel.Target_positions, extruder.Extrude);
             UnloadDroppedFiles(droppedFiles);
         }
 
@@ -389,7 +400,7 @@ void UnloadShadowmapRenderTexture(RenderTexture2D target) {
     }
 }
 
-void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points) {  
+void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points, std::vector<bool>& Extrude) {
   std::fstream gcode_file;  //otwieranie pliku
   gcode_file.open(file_path, std::ios::in);  
   if (gcode_file.is_open()) {  
@@ -404,6 +415,7 @@ void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points) {
               int y_pos = line.find("Y");  
               int z_pos = line.find("Z");
 			  int f_pos = line.find("F");
+			  int E_pos = line.find("E");
               int space_pos = 0;  
 			  if (x_pos > 0) {  //jeśli jest to znajdujemy spację i do tej pozycji pobieramy wartość
                   space_pos = line.find(" ", x_pos);  
@@ -424,7 +436,11 @@ void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points) {
                   space_pos = line.find(" ", f_pos);
                   F = std::stof(line.substr(f_pos + 1, space_pos - f_pos - 1));
               }
-			  points.push_back({ X, Z, Y, F });  //dodajemy do wektora punkty
+              if(E_pos >0) { 
+			      Extrude.push_back(true); 
+              }
+              else Extrude.push_back(false);
+			  points.push_back({ X, Z, Y, F });
           }  
       }  
       gcode_file.close();  
