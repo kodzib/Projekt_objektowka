@@ -226,7 +226,6 @@ public:
     }
 
     ~Extruder() {
-        UnloadModel(model);  // Zwolnij pamięć modelu
     }
 
     void Update(modele* x, modele* z, int index) {
@@ -237,12 +236,12 @@ public:
                 Vertices.back().y != Current_Pos.y ||
                 Vertices.back().z != Current_Pos.z) {
                 Vertices.push_back({ x->position.x, x->position.y, z->position.z });
-                //UpdateMesh();
+                UpdateMesh();
             }
         }
     }
 
-    /*void UpdateMesh() {
+    void UpdateMesh() {
         Vector3 offset = { width / 2.0f , 0.0f, width / 2.0f };
         int count = Vertices.size();
         if (count < 2) return;
@@ -266,9 +265,9 @@ public:
             I[6 * i + 0] = 4 * i + 0;
             I[6 * i + 1] = 4 * i + 1;
             I[6 * i + 2] = 4 * i + 2;
-            I[6 * i + 3] = 4 * i + 3;
+            I[6 * i + 3] = 4 * i + 2;
             I[6 * i + 4] = 4 * i + 1;
-            I[6 * i + 5] = 4 * i + 2;
+            I[6 * i + 5] = 4 * i + 3;
         }
 
 
@@ -294,17 +293,18 @@ public:
         }
 
         UploadMesh(&mesh, true);         // <- Użycie true: dane zostają w RAM
-        UnloadModel(model);              // <- Usuń stary model
 		//UpdateMeshBuffer(mesh, 0, mesh.vertices, mesh.vertexCount * 3,0);
         //UpdateMeshBuffer(mesh, 6, mesh.indices, mesh.triangleCount * 3, 0);
-    }*/
+    }
 
     void Draw(modele* table, int index) {
-        if (index >= 2) {
-            for (size_t i = 1; i < Vertices.size(); ++i) {
-                DrawLine3D(Vertices[i - 1], Vertices[i], RED);
-            }
-        }
+        //if (index >= 2) {
+        //    for (size_t i = 1; i < Vertices.size(); ++i) {
+        //        DrawLine3D(Vertices[i - 1], Vertices[i], RED);
+        //    }
+        //}
+        rlDisableBackfaceCulling();
+        DrawMesh(mesh, material, MatrixTranslate(table->position.x, table->position.y, table->position.z)*MatrixRotateXYZ({0,0,0}));
     }
 
     void clear() {
@@ -316,7 +316,6 @@ private:
     const float width = 0.12f;
     Mesh mesh;
 	Material material;
-    Model model;
     Vector3 Current_Pos = { 0 };
 };
 
@@ -554,11 +553,11 @@ void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points, std::vec
               }
               space_pos = 0;
               if(E_pos > 0) { 
-                  space_pos = line.find(" ", E_pos);
+                  /*space_pos = line.find(" ", E_pos);
                   float E = std::stof(line.substr(E_pos + 1, space_pos - E_pos - 1));
-                  if (E > 0) Extrude.push_back(true);
+                  if (E > 0)*/ Extrude.push_back(true);
+              } //wywalalo mi crashe 
                   else Extrude.push_back(false);
-              }
 			  points.push_back({ X, Z, Y, F });
           }  
       }  
