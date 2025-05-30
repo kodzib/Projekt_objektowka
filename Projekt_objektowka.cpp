@@ -436,10 +436,13 @@ void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points, std::vec
                   space_pos = line.find(" ", f_pos);
                   F = std::stof(line.substr(f_pos + 1, space_pos - f_pos - 1));
               }
-              if(E_pos >0) { 
-			      Extrude.push_back(true); 
+              space_pos = 0;
+              if(E_pos > 0) { 
+                  space_pos = line.find(" ", E_pos);
+                  float E = std::stof(line.substr(E_pos + 1, space_pos - E_pos - 1));
+                  if (E > 0) Extrude.push_back(true);
+                  else Extrude.push_back(false);
               }
-              else Extrude.push_back(false);
 			  points.push_back({ X, Z, Y, F });
           }  
       }  
