@@ -57,7 +57,7 @@ public:
 
     void Draw() override {
         DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, WHITE);
-        DrawBoundingBox(GetTransformedBoundingBox(), BLUE); 
+        //DrawBoundingBox(GetTransformedBoundingBox(), BLUE); 
     }
 
     BoundingBox GetTransformedBoundingBox() const {
@@ -89,7 +89,7 @@ public:
     void MoveToPoint(modele* x, modele* y, modele* z, float dt) {
         //korecja polozenia o polozenie poczatkowe
         kolizja = CheckCollisionBoxes(x->GetTransformedBoundingBox(), z->GetTransformedBoundingBox());
-        speed = 0.01f ;
+        speed = 0.02f ;
         if (!start_pos) {
 			if (x->position.x > x_start && abs((x->position.x - x_start)) > speed) {
 				x->position.x -= speed;
@@ -180,6 +180,10 @@ public:
         }
     }
 
+    int GetIndex() const {
+        return index;
+    }
+
 	void clear() {
 		//stan poczatkowy po wczytaniu nowego gcodea
 		Target_positions.clear();
@@ -199,14 +203,121 @@ private:
     static constexpr float x_start = -12.3f;
 };
 
+
 class Extruder {
 public:
-	std::vector<bool> Extrude;
-    //tutaj mozna dodac jakas generacje mesha w tej klasie ze jezeli Extrude == 1 to rysuje a jezeli 0 to nie
+    std::vector<bool> Extrude = { 1 };
+    std::vector<Vector3> Vertices;
 
-	void clear() {
-		Extrude.clear();
-	}
+    Extruder() {
+        mesh = { 0 };
+        //std::memset(&mesh, 0, sizeof(mesh));
+        //std::memset(&model, 0, sizeof(model));
+        const int max_segments = 100000;
+        const int max_vertices = max_segments * 4;
+        const int max_indices = max_segments * 6;
+
+        mesh.vertices = (float*)MemAlloc(max_vertices * 3 * sizeof(float));
+        mesh.indices = (unsigned short*)MemAlloc(max_indices * sizeof(unsigned short));
+
+		material = LoadMaterialDefault();
+		material.maps[MATERIAL_MAP_ALBEDO].color = GREEN;
+		//UploadMesh(&mesh,true); // Upload mesh to GPU (static mesh)
+    }
+
+    ~Extruder() {
+        UnloadModel(model);  // Zwolnij pamięć modelu
+    }
+
+    void Update(modele* x, modele* z, int index) {
+        Current_Pos = x->position;
+
+        if (index < (int)Extrude.size() && Extrude[index]) {
+            if (Vertices.empty() || Vertices.back().x != Current_Pos.x ||
+                Vertices.back().y != Current_Pos.y ||
+                Vertices.back().z != Current_Pos.z) {
+                Vertices.push_back({ x->position.x, x->position.y, z->position.z });
+                //UpdateMesh();
+            }
+        }
+    }
+
+    /*void UpdateMesh() {
+        Vector3 offset = { width / 2.0f , 0.0f, width / 2.0f };
+        int count = Vertices.size();
+        if (count < 2) return;
+
+        int segment_Count = count - 1;
+        int vertices_Count = segment_Count * 4;
+        int index_Count = segment_Count * 6;
+
+        std::vector<Vector3> V(vertices_Count);
+        std::vector<unsigned int> I(index_Count);
+
+        for (int i = 0; i < segment_Count; i++) {
+            Vector3 start = Vertices[i];
+            Vector3 end = Vertices[i + 1];
+
+            V[4 * i + 0] = Vector3Add(start, offset);
+            V[4 * i + 1] = Vector3Subtract(start, offset);
+            V[4 * i + 2] = Vector3Add(end, offset);
+            V[4 * i + 3] = Vector3Subtract(end, offset);
+
+            I[6 * i + 0] = 4 * i + 0;
+            I[6 * i + 1] = 4 * i + 1;
+            I[6 * i + 2] = 4 * i + 2;
+            I[6 * i + 3] = 4 * i + 3;
+            I[6 * i + 4] = 4 * i + 1;
+            I[6 * i + 5] = 4 * i + 2;
+        }
+
+
+        //if (mesh.vertices) MemFree(mesh.vertices);
+        //if (mesh.indices) MemFree(mesh.indices);
+        //UnloadMesh(mesh);
+        std::memset(&mesh, 0, sizeof(mesh));
+
+        mesh.vertexCount = V.size();
+        mesh.triangleCount = (I.size() / 3);
+
+        mesh.vertices = (float*)MemAlloc(V.size() * 3 * sizeof(float));
+        mesh.indices = (unsigned short*)MemAlloc(I.size() * sizeof(unsigned short));
+
+        for (size_t i = 0; i < V.size(); i++) {
+            mesh.vertices[3 * i + 0] = V[i].x;
+            mesh.vertices[3 * i + 1] = V[i].y;
+            mesh.vertices[3 * i + 2] = V[i].z;
+        }
+
+        for (size_t i = 0; i < I.size(); i++) {
+            mesh.indices[i] = (unsigned short)I[i];
+        }
+
+        UploadMesh(&mesh, true);         // <- Użycie true: dane zostają w RAM
+        UnloadModel(model);              // <- Usuń stary model
+		//UpdateMeshBuffer(mesh, 0, mesh.vertices, mesh.vertexCount * 3,0);
+        //UpdateMeshBuffer(mesh, 6, mesh.indices, mesh.triangleCount * 3, 0);
+    }*/
+
+    void Draw(modele* table, int index) {
+        if (index >= 2) {
+            for (size_t i = 1; i < Vertices.size(); ++i) {
+                DrawLine3D(Vertices[i - 1], Vertices[i], RED);
+            }
+        }
+    }
+
+    void clear() {
+        Extrude.clear();
+        Vertices.clear();
+    }
+
+private:
+    const float width = 0.12f;
+    Mesh mesh;
+	Material material;
+    Model model;
+    Vector3 Current_Pos = { 0 };
 };
 
 int main(void) {
@@ -242,7 +353,7 @@ int main(void) {
 
     //ładowanie modeli + klasy do ruchu
     TargetPoint cel({});
-	Extruder extruder;
+    Extruder extruder;
     main_model drukarka("modele/main.obj", "modele/main.png", shadowShader, {0.0f, 0.0f, 0.0f});
     modele table("modele/Y.obj", "modele/Y.png", shadowShader, { 0.0f, 5.55f, -6.3f });
     modele nozzle("modele/X.obj", "modele/X.png", shadowShader, { 0.0f, 31.33f, 0.0f });
@@ -256,13 +367,13 @@ int main(void) {
     lightCam.fovy = 20.0f;
 
     DisableCursor();
-    SetTargetFPS(200); //dalem wiecej klatek zeby ruch byl plynniejszy
+    SetTargetFPS(40); //dalem wiecej klatek zeby ruch byl plynniejszy
 
     // Main game loop
     while (!WindowShouldClose()) {
+        float dt = GetFrameTime();
 		std::vector <Vector4> points;
 
-        float dt = GetFrameTime();
 
         Vector3 cameraPos = cam.position;
         SetShaderValue(shadowShader, shadowShader.locs[SHADER_LOC_VECTOR_VIEW], &cameraPos, SHADER_UNIFORM_VEC3);
@@ -322,6 +433,7 @@ int main(void) {
         //wczytywanie z gcodea do vectora w klasie
       if (IsFileDropped()) {
             cel.clear();
+			extruder.clear();
             char filePath[MAX_FILEPATH_SIZE] = { 0 };
             FilePathList droppedFiles = LoadDroppedFiles();
             TextCopy(filePath, droppedFiles.paths[0]);
@@ -340,6 +452,10 @@ int main(void) {
 
         //ruch do celu
         cel.MoveToPoint(&nozzle, &rail, &table, dt);
+		extruder.Update(&nozzle,&table, cel.GetIndex());
+
+        extruder.Draw(&table, cel.GetIndex());
+
 
         EndMode3D();
 
