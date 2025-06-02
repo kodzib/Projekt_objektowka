@@ -213,16 +213,16 @@ public:
         mesh = { 0 };
         //std::memset(&mesh, 0, sizeof(mesh));
         //std::memset(&model, 0, sizeof(model));
-        const int max_segments = 100000;
-        const int max_vertices = max_segments * 4;
-        const int max_indices = max_segments * 6;
-
-        mesh.vertices = (float*)MemAlloc(max_vertices * 3 * sizeof(float));
-        mesh.indices = (unsigned short*)MemAlloc(max_indices * sizeof(unsigned short));
-
-		material = LoadMaterialDefault();
-		material.maps[MATERIAL_MAP_ALBEDO].color = GREEN;
-		//UploadMesh(&mesh,true); // Upload mesh to GPU (static mesh)
+        //const int max_segments = 100000;
+        //const int max_vertices = max_segments * 4;
+        //const int max_indices = max_segments * 6;
+        //
+        //mesh.vertices = (float*)MemAlloc(max_vertices * 3 * sizeof(float));
+        //mesh.indices = (unsigned short*)MemAlloc(max_indices * sizeof(unsigned short));
+        //
+        material = LoadMaterialDefault();
+        material.maps[MATERIAL_MAP_ALBEDO].color = GREEN;
+        //UploadMesh(&mesh,true); // Upload mesh to GPU (static mesh)
     }
 
     ~Extruder() {
@@ -250,13 +250,13 @@ public:
         int vertices_Count = segment_Count * 4;
         int index_Count = segment_Count * 6;
 
-        std::vector<Vector3> V(vertices_Count);
-        std::vector<unsigned int> I(index_Count);
+        V.resize(vertices_Count);
+        I.resize(index_Count);
 
         for (int i = 0; i < segment_Count; i++) {
             Vector3 start = Vertices[i];
             Vector3 end = Vertices[i + 1];
-
+            Vector3 dir = Vector3Normalize(end - start);
             V[4 * i + 0] = Vector3Add(start, offset);
             V[4 * i + 1] = Vector3Subtract(start, offset);
             V[4 * i + 2] = Vector3Add(end, offset);
@@ -271,10 +271,8 @@ public:
         }
 
 
-        //if (mesh.vertices) MemFree(mesh.vertices);
-        //if (mesh.indices) MemFree(mesh.indices);
-        //UnloadMesh(mesh);
-        std::memset(&mesh, 0, sizeof(mesh));
+        UnloadMesh(mesh);
+        mesh = { 0 };
 
         mesh.vertexCount = V.size();
         mesh.triangleCount = (I.size() / 3);
@@ -292,19 +290,23 @@ public:
             mesh.indices[i] = (unsigned short)I[i];
         }
 
-        UploadMesh(&mesh, true);         // <- Użycie true: dane zostają w RAM
-		//UpdateMeshBuffer(mesh, 0, mesh.vertices, mesh.vertexCount * 3,0);
-        //UpdateMeshBuffer(mesh, 6, mesh.indices, mesh.triangleCount * 3, 0);
+        UploadMesh(&mesh, true);
     }
 
     void Draw(modele* table, int index) {
         //if (index >= 2) {
         //    for (size_t i = 1; i < Vertices.size(); ++i) {
-        //        DrawLine3D(Vertices[i - 1], Vertices[i], RED);
+        //        Vector3 drawPos = {
+        //            Vertices[i].x + table->position.x,
+        //            Vertices[i].y, // y pozostaje bez zmian
+        //            Vertices[i].z + table->position.z
+        //        };
+        //        DrawCube(drawPos, 0.1f, 0.1f, 0.1f, RED);
         //    }
         //}
         rlDisableBackfaceCulling();
         DrawMesh(mesh, material, MatrixTranslate(table->position.x, table->position.y, table->position.z)*MatrixRotateXYZ({0,0,0}));
+        //spadki fps mialem po 19 minutach
     }
 
     void clear() {
@@ -313,9 +315,11 @@ public:
     }
 
 private:
+    std::vector<Vector3> V;
+    std::vector<unsigned int> I;
     const float width = 0.12f;
     Mesh mesh;
-	Material material;
+    Material material;
     Vector3 Current_Pos = { 0 };
 };
 
