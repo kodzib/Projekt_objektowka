@@ -209,8 +209,6 @@ public:
 
     Extruder() {
         mesh = { 0 };
-        //std::memset(&mesh, 0, sizeof(mesh));
-        //std::memset(&model, 0, sizeof(model));
         //const int max_segments = 100000;
         //const int max_vertices = max_segments * 4;
         //const int max_indices = max_segments * 6;
@@ -220,7 +218,7 @@ public:
         //
         material = LoadMaterialDefault();
         material.maps[MATERIAL_MAP_ALBEDO].color = GREEN;
-        //UploadMesh(&mesh,true); // Upload mesh to GPU (static mesh)
+        UploadMesh(&mesh, false);
     }
 
     ~Extruder() {
@@ -288,7 +286,7 @@ public:
             mesh.indices[i] = (unsigned short)I[i];
         }
 
-        UploadMesh(&mesh, true);
+        UploadMesh(&mesh, false);
     }
 
     void Draw(modele* table, int index) {
@@ -303,13 +301,19 @@ public:
         //    }
         //}
         rlDisableBackfaceCulling();
-        DrawMesh(mesh, material, MatrixTranslate(table->position.x + x_offset, table->position.y + y_offset, table->position.z + z_offset)*MatrixRotateXYZ({0,0,0}));
-        //spadki fps mialem po 19 minutach
+        DrawMesh(mesh, material, MatrixTranslate(-table->position.x + x_offset, table->position.y + y_offset, -table->position.z + z_offset)*MatrixRotateXYZ({0,0,0}));
     }
 
     void clear() {
+        if (mesh.vertexCount > 0) {
+            UnloadMesh(mesh);
+        }
+        mesh = { 0 };
+
         Extrude.clear();
         Vertices.clear();
+        V.clear();
+        I.clear();
     }
 
 private:
