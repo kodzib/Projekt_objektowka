@@ -28,7 +28,7 @@ public:
         position = pos;
         model1 = LoadModel(modelPath);
 		model1.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = LoadTexture(texturePath); //dodanie tekstury
-        for (int i = 0; i < model1.materialCount; i++) { //low key trzeba ogarnąć o co z tych chodzi, 
+		for (int i = 0; i < model1.materialCount; i++) { //low key trzeba ogarnąć o co z tych chodzi. nie wiem, ale bez tego nie działa shader
             model1.materials[i].shader = shader;
         }
     }
@@ -47,8 +47,7 @@ class modele : public main_model { //polimorfizm
 public:
     BoundingBox box;
     modele(const char* modelPath, const char* texturePath, Shader shader, Vector3 pos = { 0.0f, 0.0f, 0.0f }) : main_model(modelPath, texturePath, shader, pos) {
-        // Teraz model1 powinien być zainicjalizowany (zakładając, że konstruktor main_model to robi)
-            box = GetMeshBoundingBox(model1.meshes[0]);
+        box = GetMeshBoundingBox(model1.meshes[0]);
     }
 
     ~modele() {
@@ -56,8 +55,7 @@ public:
     }
 
     void Draw() override {
-        DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, WHITE);
-        //DrawBoundingBox(GetTransformedBoundingBox(), BLUE); 
+        DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, WHITE); 
     }
 
     BoundingBox GetTransformedBoundingBox() const {
@@ -132,10 +130,10 @@ public:
             //dodanie srodka do wektora + skalowanie
 			if (srodek_dodany == false) { 
 				for (int i = 0; i < Target_positions.size(); i++) { 
-                					Target_positions[i].x = Target_positions[i].x / 10 + x_start;
-                                    Target_positions[i].y = Target_positions[i].y / 10 + y_start;
-                                    Target_positions[i].z = Target_positions[i].z / 10 + z_start;
-									Target_positions[i].w = Target_positions[i].w / 10;
+                    Target_positions[i].x = Target_positions[i].x / 10 + x_start;
+                    Target_positions[i].y = Target_positions[i].y / 10 + y_start;
+                    Target_positions[i].z = Target_positions[i].z / 10 + z_start;
+				    Target_positions[i].w = Target_positions[i].w / 10;
                 }
                 srodek_dodany = true;
             }
@@ -440,7 +438,6 @@ int main(void) {
             char filePath[MAX_FILEPATH_SIZE] = { 0 };
             FilePathList droppedFiles = LoadDroppedFiles();
             TextCopy(filePath, droppedFiles.paths[0]);
-            std::cout << filePath << std::endl;
             GcodeAnalizer(std::string(filePath), cel.Target_positions, extruder.Extrude);
             UnloadDroppedFiles(droppedFiles);
         }
@@ -455,7 +452,7 @@ int main(void) {
 
         //ruch do celu
         cel.MoveToPoint(&nozzle, &rail, &table, dt);
-		extruder.Update(&nozzle,&table, cel.GetIndex());
+		extruder.Update(&nozzle, &table, cel.GetIndex());
 
         extruder.Draw(&table, cel.GetIndex());
 
@@ -464,11 +461,6 @@ int main(void) {
 
         DrawFPS(10, 10);
         EndDrawing();
-
-        //crazy , tez chyba mozna usunac
-        if (IsKeyPressed(KEY_T)) {
-            TakeScreenshot("shaders_shadowmap.png");
-        }
     }
 
     // De-Initialization
@@ -557,10 +549,10 @@ void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points, std::vec
               }
               space_pos = 0;
               if(E_pos > 0) { 
-                  /*space_pos = line.find(" ", E_pos);
+                  space_pos = line.find(" ", E_pos);
                   float E = std::stof(line.substr(E_pos + 1, space_pos - E_pos - 1));
-                  if (E > 0)*/ Extrude.push_back(true);
-              } //wywalalo mi crashe 
+                  if (E > 0) Extrude.push_back(true);
+              }
                   else Extrude.push_back(false);
 			  points.push_back({ X, Z, Y, F });
           }  
