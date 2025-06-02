@@ -204,7 +204,7 @@ private:
 
 class Extruder {
 public:
-    std::vector<bool> Extrude = { 0 };
+    std::vector<bool> Extrude = { 1 };
     std::vector<Vector3> Vertices;
 
     Extruder() {
@@ -231,7 +231,7 @@ public:
             if (Vertices.empty() || Vertices.back().x != Current_Pos.x ||
                 Vertices.back().y != Current_Pos.y ||
                 Vertices.back().z != Current_Pos.z) {
-                Vertices.push_back({ x->position.x, x->position.y, z->position.z });
+                Vertices.push_back({ x->position.x, x->position.y, x->position.z - z->position.z });
                 UpdateMesh();
             }
         }
@@ -301,7 +301,7 @@ public:
         //    }
         //}
         rlDisableBackfaceCulling();
-        DrawMesh(mesh, material, MatrixTranslate(-table->position.x + x_offset, table->position.y + y_offset, -table->position.z + z_offset)*MatrixRotateXYZ({0,0,0}));
+        DrawMesh(mesh, material, MatrixTranslate(table->position.x + x_offset, table->position.y + y_offset, table->position.z + z_offset)*MatrixRotateXYZ({0,0,0}));
     }
 
     void clear() {
@@ -375,7 +375,7 @@ int main(void) {
     lightCam.fovy = 20.0f;
 
     DisableCursor();
-    SetTargetFPS(40); //dalem wiecej klatek zeby ruch byl plynniejszy
+    SetTargetFPS(60); //dalem wiecej klatek zeby ruch byl plynniejszy
 
     // Main game loop
     while (!WindowShouldClose()) {
