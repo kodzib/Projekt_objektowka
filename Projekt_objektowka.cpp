@@ -204,7 +204,7 @@ private:
 
 class Extruder {
 public:
-    std::vector<bool> Extrude = { 1 };
+    std::vector<bool> Extrude = { 0 };
     std::vector<Vector3> Vertices;
 
     Extruder() {
@@ -303,7 +303,7 @@ public:
         //    }
         //}
         rlDisableBackfaceCulling();
-        DrawMesh(mesh, material, MatrixTranslate(table->position.x, table->position.y, table->position.z)*MatrixRotateXYZ({0,0,0}));
+        DrawMesh(mesh, material, MatrixTranslate(table->position.x + x_offset, table->position.y + y_offset, table->position.z + z_offset)*MatrixRotateXYZ({0,0,0}));
         //spadki fps mialem po 19 minutach
     }
 
@@ -319,6 +319,9 @@ private:
     Mesh mesh;
     Material material;
     Vector3 Current_Pos = { 0 };
+    static constexpr float x_offset = 0.6f;//w prawo
+    static constexpr float z_offset = 7.0f;//do przodu
+    static constexpr float y_offset = -5.55f;
 };
 
 int main(void) {
@@ -373,9 +376,7 @@ int main(void) {
     // Main game loop
     while (!WindowShouldClose()) {
         float dt = GetFrameTime();
-		std::vector <Vector4> points;
-
-
+		
         Vector3 cameraPos = cam.position;
         SetShaderValue(shadowShader, shadowShader.locs[SHADER_LOC_VECTOR_VIEW], &cameraPos, SHADER_UNIFORM_VEC3);
         UpdateCamera(&cam, CAMERA_FREE);
