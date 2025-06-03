@@ -324,7 +324,7 @@ private:
     Material material;
     Vector3 Current_Pos = { 0 };
     static constexpr float x_offset = 0.6f;//w prawo
-    static constexpr float z_offset = 7.0f;//do przodu
+    static constexpr float z_offset = 6.4f;//do przodu
     static constexpr float y_offset = -5.55f;
 };
 
