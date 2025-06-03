@@ -28,7 +28,7 @@ public:
         position = pos;
         model1 = LoadModel(modelPath);
 		model1.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = LoadTexture(texturePath); //dodanie tekstury
-		for (int i = 0; i < model1.materialCount; i++) { //low key trzeba ogarnąć o co z tych chodzi. nie wiem, ale bez tego nie działa shader
+		for (int i = 0; i < model1.materialCount; i++) {
             model1.materials[i].shader = shader;
         }
     }
@@ -191,7 +191,7 @@ public:
 	}
 private:
     bool kolizja = false;
-    int index = 0;
+    unsigned int index = 0;
     float offsetY = 0;
     bool start_pos = 0;
     bool srodek_dodany = 0;
@@ -209,13 +209,6 @@ public:
 
     Extruder() {
         mesh = { 0 };
-        //const int max_segments = 100000;
-        //const int max_vertices = max_segments * 4;
-        //const int max_indices = max_segments * 6;
-        //
-        //mesh.vertices = (float*)MemAlloc(max_vertices * 3 * sizeof(float));
-        //mesh.indices = (unsigned short*)MemAlloc(max_indices * sizeof(unsigned short));
-        //
         material = LoadMaterialDefault();
         material.maps[MATERIAL_MAP_ALBEDO].color = GREEN;
         UploadMesh(&mesh, false);
@@ -290,16 +283,6 @@ public:
     }
 
     void Draw(modele* table, int index) {
-        //if (index >= 2) {
-        //    for (size_t i = 1; i < Vertices.size(); ++i) {
-        //        Vector3 drawPos = {
-        //            Vertices[i].x + table->position.x,
-        //            Vertices[i].y, // y pozostaje bez zmian
-        //            Vertices[i].z + table->position.z
-        //        };
-        //        DrawCube(drawPos, 0.1f, 0.1f, 0.1f, RED);
-        //    }
-        //}
         rlDisableBackfaceCulling();
         DrawMesh(mesh, material, MatrixTranslate(table->position.x + x_offset, table->position.y + y_offset, table->position.z + z_offset)*MatrixRotateXYZ({0,0,0}));
     }
@@ -375,7 +358,7 @@ int main(void) {
     lightCam.fovy = 20.0f;
 
     DisableCursor();
-    SetTargetFPS(60); //dalem wiecej klatek zeby ruch byl plynniejszy
+    SetTargetFPS(60);
 
     // Main game loop
     while (!WindowShouldClose()) {
@@ -557,8 +540,9 @@ void GcodeAnalizer(std::string file_path, std::vector<Vector4>& points, std::vec
                   space_pos = line.find(" ", E_pos);
                   float E = std::stof(line.substr(E_pos + 1, space_pos - E_pos - 1));
                   if (E > 0) Extrude.push_back(true);
-              }
                   else Extrude.push_back(false);
+              }
+              else Extrude.push_back(false);
 			  points.push_back({ X, Z, Y, F });
           }  
       }  
