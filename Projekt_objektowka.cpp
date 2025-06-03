@@ -208,17 +208,12 @@ public:
     std::vector<Vector3> Vertices;
 
     Extruder() {
-        mesh = { 0 };
-        //const int max_segments = 100000;
-        //const int max_vertices = max_segments * 4;
-        //const int max_indices = max_segments * 6;
-        //
-        //mesh.vertices = (float*)MemAlloc(max_vertices * 3 * sizeof(float));
-        //mesh.indices = (unsigned short*)MemAlloc(max_indices * sizeof(unsigned short));
-        //
+
         material = LoadMaterialDefault();
         material.maps[MATERIAL_MAP_ALBEDO].color = GREEN;
-        UploadMesh(&mesh, false);
+
+		uploadedMeshes.push_back({ 0 }); // Inicjalizacja wektora z jednym pustym meshem
+        UploadMesh(&uploadedMeshes[mesh_Index], false);
     }
 
     ~Extruder() {
@@ -252,7 +247,7 @@ public:
         for (int i = 0; i < segment_Count; i++) {
             Vector3 start = Vertices[i];
             Vector3 end = Vertices[i + 1];
-            Vector3 dir = Vector3Normalize(end - start);
+
             V[4 * i + 0] = Vector3Add(start, offset);
             V[4 * i + 1] = Vector3Subtract(start, offset);
             V[4 * i + 2] = Vector3Add(end, offset);
@@ -267,48 +262,58 @@ public:
         }
 
 
-        UnloadMesh(mesh);
-        mesh = { 0 };
+        UnloadMesh(uploadedMeshes[mesh_Index]);
+        uploadedMeshes[mesh_Index] = { 0 };
 
-        mesh.vertexCount = V.size();
-        mesh.triangleCount = (I.size() / 3);
+        uploadedMeshes[mesh_Index].vertexCount = V.size();
+        uploadedMeshes[mesh_Index].triangleCount = (I.size() / 3);
 
-        mesh.vertices = (float*)MemAlloc(V.size() * 3 * sizeof(float));
-        mesh.indices = (unsigned short*)MemAlloc(I.size() * sizeof(unsigned short));
+        uploadedMeshes[mesh_Index].vertices = (float*)MemAlloc(V.size() * 3 * sizeof(float));
+        uploadedMeshes[mesh_Index].indices = (unsigned short*)MemAlloc(I.size() * sizeof(unsigned short));
 
         for (size_t i = 0; i < V.size(); i++) {
-            mesh.vertices[3 * i + 0] = V[i].x;
-            mesh.vertices[3 * i + 1] = V[i].y;
-            mesh.vertices[3 * i + 2] = V[i].z;
+            uploadedMeshes[mesh_Index].vertices[3 * i + 0] = V[i].x;
+            uploadedMeshes[mesh_Index].vertices[3 * i + 1] = V[i].y;
+            uploadedMeshes[mesh_Index].vertices[3 * i + 2] = V[i].z;
         }
 
         for (size_t i = 0; i < I.size(); i++) {
-            mesh.indices[i] = (unsigned short)I[i];
+            uploadedMeshes[mesh_Index].indices[i] = (unsigned short)I[i];
         }
 
-        UploadMesh(&mesh, false);
+        UploadMesh(&uploadedMeshes[mesh_Index], false);
+
+        if (uploadedMeshes[mesh_Index].vertexCount >= MAX_SEGMENTS_PER_MESH)
+        {
+            mesh_Index++;
+            Mesh emptyMesh = { 0 };
+            uploadedMeshes.push_back(emptyMesh);
+            Vertices.clear();
+            V.clear();
+            I.clear();
+            return;
+            
+        }
     }
 
-    void Draw(modele* table, int index) {
-        //if (index >= 2) {
-        //    for (size_t i = 1; i < Vertices.size(); ++i) {
-        //        Vector3 drawPos = {
-        //            Vertices[i].x + table->position.x,
-        //            Vertices[i].y, // y pozostaje bez zmian
-        //            Vertices[i].z + table->position.z
-        //        };
-        //        DrawCube(drawPos, 0.1f, 0.1f, 0.1f, RED);
-        //    }
-        //}
+    void Draw(modele* table) {
+
         rlDisableBackfaceCulling();
-        DrawMesh(mesh, material, MatrixTranslate(table->position.x + x_offset, table->position.y + y_offset, table->position.z + z_offset)*MatrixRotateXYZ({0,0,0}));
+		for (int i = 0; i < uploadedMeshes.size(); i++) {
+            if (uploadedMeshes[i].vertexCount > 0) {
+				DrawMesh(uploadedMeshes[i], material, MatrixTranslate(table->position.x + x_offset, table->position.y + y_offset, table->position.z + z_offset) * MatrixRotateXYZ({ 0, 0, 0 }));
+			}
+		}
     }
 
     void clear() {
-        if (mesh.vertexCount > 0) {
-            UnloadMesh(mesh);
+        // Zwalniamy wszystkie meshe zupałnie
+        for (auto& m : uploadedMeshes) {
+            if (m.vertexCount > 0) UnloadMesh(m);
         }
-        mesh = { 0 };
+        uploadedMeshes.clear();
+        uploadedMeshes.push_back({ 0 });
+        mesh_Index = 0;
 
         Extrude.clear();
         Vertices.clear();
@@ -317,12 +322,14 @@ public:
     }
 
 private:
+    int mesh_Index = 0;
     std::vector<Vector3> V;
-    std::vector<unsigned int> I;
+    std::vector<unsigned short> I;
     const float width = 0.12f;
-    Mesh mesh;
+    std::vector<Mesh> uploadedMeshes;
     Material material;
     Vector3 Current_Pos = { 0 };
+    static constexpr int MAX_SEGMENTS_PER_MESH = 10000;
     static constexpr float x_offset = 0.6f;//w prawo
     static constexpr float z_offset = 6.4f;//do przodu
     static constexpr float y_offset = -5.55f;
@@ -459,7 +466,7 @@ int main(void) {
         cel.MoveToPoint(&nozzle, &rail, &table, dt);
 		extruder.Update(&nozzle, &table, cel.GetIndex());
 
-        extruder.Draw(&table, cel.GetIndex());
+        extruder.Draw(&table);
 
 
         EndMode3D();
