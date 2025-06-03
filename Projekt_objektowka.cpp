@@ -283,8 +283,7 @@ public:
 
         UploadMesh(&uploadedMeshes[mesh_Index], false);
 
-        if (uploadedMeshes[mesh_Index].vertexCount >= MAX_SEGMENTS_PER_MESH)
-        {
+        if (uploadedMeshes[mesh_Index].vertexCount >= MAX_SEGMENTS_PER_MESH) {
             mesh_Index++;
             Mesh emptyMesh = { 0 };
             uploadedMeshes.push_back(emptyMesh);
@@ -292,12 +291,10 @@ public:
             V.clear();
             I.clear();
             return;
-            
         }
     }
 
     void Draw(modele* table) {
-
         rlDisableBackfaceCulling();
 		for (int i = 0; i < uploadedMeshes.size(); i++) {
             if (uploadedMeshes[i].vertexCount > 0) {
@@ -322,7 +319,7 @@ public:
     }
 
 private:
-    int mesh_Index = 0;
+    unsigned int mesh_Index = 0;
     std::vector<Vector3> V;
     std::vector<unsigned short> I;
     const float width = 0.12f;
