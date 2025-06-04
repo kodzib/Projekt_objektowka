@@ -39,11 +39,13 @@ public:
     }
 
     virtual void Draw() {
-        DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, WHITE);
+        DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { scale, scale, scale }, WHITE);
     }
+protected:
+	static constexpr float scale = 0.1f; //skalowanie modelu
 };
 
-class modele : public main_model { //polimorfizm
+class modele : public main_model {
 public:
     BoundingBox box;
     modele(const char* modelPath, const char* texturePath, Shader shader, Vector3 pos = { 0.0f, 0.0f, 0.0f }) : main_model(modelPath, texturePath, shader, pos) {
@@ -55,11 +57,11 @@ public:
     }
 
     void Draw() override {
-        DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { 0.1f, 0.1f, 0.1f }, WHITE); 
+        DrawModelEx(model1, position, { 0.0f, 1.0f, 0.0f }, 0.0f, { scale, scale, scale }, WHITE);
     }
 
-    BoundingBox GetTransformedBoundingBox() const {
         // skalowanie boxa i zeby wyswietlal sie na modelu
+    BoundingBox GetTransformedBoundingBox() const {
         BoundingBox scaled_box = box;
 
         scaled_box.min = Vector3Scale(scaled_box.min, scale)+ position;
@@ -67,9 +69,6 @@ public:
 
         return scaled_box;
     }
-
-private:
-    float scale = 0.1f;
 };
 
 class TargetPoint {
@@ -204,7 +203,7 @@ private:
 
 class Extruder {
 public:
-    std::vector<bool> Extrude = { 1 };
+    std::vector<bool> Extrude = { 0 };
     std::vector<Vector3> Vertices;
 
     Extruder() {
@@ -217,6 +216,10 @@ public:
     }
 
     ~Extruder() {
+        for (size_t i = 0; i < uploadedMeshes.size(); ++i) {
+            if (uploadedMeshes[i].vertexCount > 0) UnloadMesh(uploadedMeshes[i]);
+        }
+        uploadedMeshes.clear();
     }
 
     void Update(modele* x, modele* z, int index) {
@@ -305,8 +308,8 @@ public:
 
     void clear() {
         // Zwalniamy wszystkie meshe zupałnie
-        for (auto& m : uploadedMeshes) {
-            if (m.vertexCount > 0) UnloadMesh(m);
+        for (size_t i = 0; i < uploadedMeshes.size(); ++i) {
+            if (uploadedMeshes[i].vertexCount > 0) UnloadMesh(uploadedMeshes[i]);
         }
         uploadedMeshes.clear();
         uploadedMeshes.push_back({ 0 });
@@ -433,7 +436,7 @@ int main(void) {
         SetShaderValueMatrix(shadowShader, lightVPLoc, lightViewProj);
 
         rlEnableShader(shadowShader.id);
-        int slot = 10; // Can be anything 0 to 15, but 0 will probably be taken up
+        int slot = 10;
         rlActiveTextureSlot(10);
         rlEnableTexture(shadowMap.depth.id);
         rlSetUniform(shadowMapLoc, &slot, SHADER_UNIFORM_INT, 1);
@@ -451,7 +454,6 @@ int main(void) {
             UnloadDroppedFiles(droppedFiles);
         }
 
-        // Draw the same exact things as we drew in the shadowmap!
         // RYSOWANIE
         DrawGrid(20, 10.0f); //
         drukarka.Draw(); //
@@ -461,8 +463,9 @@ int main(void) {
 
         //ruch do celu
         cel.MoveToPoint(&nozzle, &rail, &table, dt);
-		extruder.Update(&nozzle, &table, cel.GetIndex());
 
+        //rysowanie mesha
+		extruder.Update(&nozzle, &table, cel.GetIndex());
         extruder.Draw(&table);
 
 
@@ -485,7 +488,7 @@ int main(void) {
 RenderTexture2D LoadShadowmapRenderTexture(int width, int height) {
     RenderTexture2D target = { 0 };
 
-    target.id = rlLoadFramebuffer(); // Load an empty framebuffer
+    target.id = rlLoadFramebuffer(); 
     target.texture.width = width;
     target.texture.height = height;
 
@@ -497,7 +500,7 @@ RenderTexture2D LoadShadowmapRenderTexture(int width, int height) {
         target.depth.id = rlLoadTextureDepth(width, height, false);
         target.depth.width = width;
         target.depth.height = height;
-        target.depth.format = 19;       //DEPTH_COMPONENT_24BIT?
+        target.depth.format = 19;      
         target.depth.mipmaps = 1;
 
         // Attach depth texture to FBO
