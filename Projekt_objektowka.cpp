@@ -207,7 +207,7 @@ public:
     std::vector<Vector3> Vertices;
 
     Extruder() {
-
+        //material i kolor dla mesha
         material = LoadMaterialDefault();
         material.maps[MATERIAL_MAP_ALBEDO].color = GREEN;
 
@@ -215,6 +215,7 @@ public:
         UploadMesh(&uploadedMeshes[mesh_Index], false);
     }
 
+    //deknstruktor
     ~Extruder() {
         for (size_t i = 0; i < uploadedMeshes.size(); ++i) {
             if (uploadedMeshes[i].vertexCount > 0) UnloadMesh(uploadedMeshes[i]);
@@ -222,6 +223,7 @@ public:
         uploadedMeshes.clear();
     }
 
+	//okreslenie czy kolejny punkt ma byc dodany do mesha
     void Update(modele* x, modele* z, int index) {
         Current_Pos = x->position;
 
@@ -235,6 +237,7 @@ public:
         }
     }
 
+	//aktualizacja mesha, tworzenie prostokątów składających sie z 2 trojkatow na podsatwie punktow
     void UpdateMesh() {
         Vector3 offset = { width / 2.0f , 0.0f, width / 2.0f };
         int count = Vertices.size();
@@ -297,6 +300,7 @@ public:
         }
     }
 
+    //rysowanie mesha
     void Draw(modele* table) {
         rlDisableBackfaceCulling();
 		for (int i = 0; i < uploadedMeshes.size(); i++) {
