@@ -1,4 +1,9 @@
-﻿#include <fstream>
+﻿/*
+Projekt przez Konrada Browalskiego 197911 i Wita Fornalika 198308
+Całość dostępna pod https://github.com/kodzib/Projekt_objektowka
+*/
+
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
